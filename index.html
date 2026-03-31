@@ -191,14 +191,14 @@
             document.getElementById('title').value = '';
             document.getElementById('amount').value = '';
             render();
-            toast('Entry added');
+            toast('✅ Entry added');
         }
 
         function deleteEntry(id) {
             data = data.filter(e => e.id !== id);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
             render();
-            toast('Deleted');
+            toast('🗑 Deleted');
         }
 
         function render() {
@@ -285,25 +285,176 @@
 
         function exportPDF() {
             const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF();
-            pdf.setFillColor(5, 5, 5);
-            pdf.rect(0, 0, 210, 297, 'F');
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const margin = 15;
+            const contentWidth = pageWidth - (2 * margin);
+
+            // WHITE BACKGROUND
+            pdf.setFillColor(255, 255, 255);
+            pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+
+            // GOLD HEADER
             pdf.setFillColor(212, 175, 55);
-            pdf.rect(0, 0, 210, 25, 'F');
+            pdf.rect(0, 0, pageWidth, 25, 'F');
             pdf.setTextColor(5, 5, 5);
+            pdf.setFont('Helvetica', 'bold');
             pdf.setFontSize(20);
-            pdf.text('THE LEDGER', 105, 15, { align: 'center' });
-            
-            pdf.setTextColor(250, 249, 246);
-            pdf.setFontSize(12);
+            pdf.text('THE LEDGER', pageWidth / 2, 16, { align: 'center' });
+
+            // Generated date
+            pdf.setTextColor(100, 100, 100);
+            pdf.setFontSize(9);
+            pdf.setFont('Helvetica', 'normal');
+            pdf.text(`Generated: ${new Date().toLocaleDateString('en-IN')}`, margin, 35);
+
+            // SUMMARY BOXES
             const credits = data.reduce((s, e) => e.type === 'credit' ? s + e.amount : s, 0);
             const expenses = data.reduce((s, e) => e.type === 'expense' ? s + e.amount : s, 0);
-            pdf.text(`Credits: ₹${credits.toFixed(2)}`, 20, 40);
-            pdf.text(`Expenses: ₹${expenses.toFixed(2)}`, 20, 50);
-            pdf.text(`Net: ₹${(credits - expenses).toFixed(2)}`, 20, 60);
-            
-            pdf.save('elite-ledger.pdf');
-            toast('PDF exported');
+            const net = credits - expenses;
+
+            const boxY = 42;
+            const boxHeight = 18;
+            const boxWidth = (contentWidth / 3) - 2;
+
+            // Net Surplus Box
+            pdf.setFillColor(230, 230, 230);
+            pdf.rect(margin, boxY, boxWidth, boxHeight, 'F');
+            pdf.setDrawColor(180, 180, 180);
+            pdf.rect(margin, boxY, boxWidth, boxHeight);
+            pdf.setFont('Helvetica', 'bold');
+            pdf.setFontSize(9);
+            pdf.setTextColor(50, 50, 50);
+            pdf.text('Net Surplus', margin + 2, boxY + 6);
+            pdf.setFontSize(11);
+            pdf.setTextColor(net >= 0 ? 50 : 200, net >= 0 ? 150 : 50, net >= 0 ? 50 : 50);
+            pdf.text(`₹${net.toFixed(2)}`, margin + 2, boxY + 14);
+
+            // Credits Box (Green)
+            pdf.setFillColor(230, 250, 230);
+            pdf.rect(margin + boxWidth + 2, boxY, boxWidth, boxHeight, 'F');
+            pdf.setDrawColor(100, 200, 100);
+            pdf.rect(margin + boxWidth + 2, boxY, boxWidth, boxHeight);
+            pdf.setFont('Helvetica', 'bold');
+            pdf.setFontSize(9);
+            pdf.setTextColor(50, 50, 50);
+            pdf.text('Credits', margin + boxWidth + 4, boxY + 6);
+            pdf.setFontSize(11);
+            pdf.setTextColor(50, 150, 50);
+            pdf.text(`₹${credits.toFixed(2)}`, margin + boxWidth + 4, boxY + 14);
+
+            // Expenses Box (Red)
+            pdf.setFillColor(255, 240, 240);
+            pdf.rect(margin + (boxWidth + 2) * 2, boxY, boxWidth, boxHeight, 'F');
+            pdf.setDrawColor(200, 100, 100);
+            pdf.rect(margin + (boxWidth + 2) * 2, boxY, boxWidth, boxHeight);
+            pdf.setFont('Helvetica', 'bold');
+            pdf.setFontSize(9);
+            pdf.setTextColor(50, 50, 50);
+            pdf.text('Expenses', margin + (boxWidth + 2) * 2 + 2, boxY + 6);
+            pdf.setFontSize(11);
+            pdf.setTextColor(200, 50, 50);
+            pdf.text(`₹${expenses.toFixed(2)}`, margin + (boxWidth + 2) * 2 + 2, boxY + 14);
+
+            // TABLE HEADER WITH GOLD BACKGROUND
+            const tableStartY = 68;
+            const colWidths = [25, 50, 20, 35, 30];
+            const headers = ['Date', 'Title', 'Type', 'Amount', 'Remark'];
+
+            pdf.setFillColor(212, 175, 55);
+            pdf.rect(margin, tableStartY, contentWidth, 8, 'F');
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFont('Helvetica', 'bold');
+            pdf.setFontSize(10);
+
+            let xPos = margin;
+            headers.forEach((header, index) => {
+                pdf.text(header, xPos + 1, tableStartY + 6);
+                pdf.setDrawColor(180, 150, 50);
+                if (index < headers.length - 1) {
+                    pdf.line(xPos + colWidths[index], tableStartY, xPos + colWidths[index], tableStartY + 8);
+                }
+                xPos += colWidths[index];
+            });
+
+            // TABLE ROWS WITH ALTERNATING COLORS & GRIDS
+            let currentY = tableStartY + 10;
+            const rowHeight = 7;
+            let rowIndex = 0;
+
+            data.forEach((entry) => {
+                if (currentY > pageHeight - 20) {
+                    pdf.addPage();
+                    pdf.setFillColor(255, 255, 255);
+                    pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+                    currentY = margin;
+                }
+
+                // Alternating row background
+                if (rowIndex % 2 === 0) {
+                    pdf.setFillColor(248, 248, 248);
+                } else {
+                    pdf.setFillColor(255, 255, 255);
+                }
+                pdf.rect(margin, currentY - 2, contentWidth, rowHeight, 'F');
+
+                // Grid lines
+                pdf.setDrawColor(200, 200, 200);
+                pdf.rect(margin, currentY - 2, contentWidth, rowHeight);
+
+                // Color-code by type
+                const isCredit = entry.type === 'credit';
+                pdf.setTextColor(isCredit ? 50 : 200, isCredit ? 150 : 50, isCredit ? 50 : 50);
+                pdf.setFont('Helvetica', 'normal');
+                pdf.setFontSize(9);
+
+                xPos = margin + 1;
+
+                // Date
+                pdf.text(new Date(entry.date).toLocaleDateString('en-IN'), xPos, currentY + 4);
+                xPos += colWidths[0];
+
+                // Title (truncate if too long)
+                const titleText = entry.title.length > 12 ? entry.title.substring(0, 10) + '..' : entry.title;
+                pdf.text(titleText, xPos, currentY + 4);
+                xPos += colWidths[1];
+
+                // Type
+                pdf.setTextColor(isCredit ? 50 : 200, isCredit ? 150 : 50, isCredit ? 50 : 50);
+                pdf.text(isCredit ? '✓ Credit' : '✗ Exp', xPos, currentY + 4);
+                xPos += colWidths[2];
+
+                // Amount
+                pdf.text(`${isCredit ? '+' : '-'}₹${entry.amount.toFixed(2)}`, xPos, currentY + 4);
+
+                // Column dividers
+                let dividerX = margin;
+                for (let i = 0; i < colWidths.length; i++) {
+                    dividerX += colWidths[i];
+                    if (i < colWidths.length - 1) {
+                        pdf.setDrawColor(220, 220, 220);
+                        pdf.line(dividerX, currentY - 2, dividerX, currentY + rowHeight - 2);
+                    }
+                }
+
+                currentY += rowHeight;
+                rowIndex++;
+            });
+
+            // FOOTER
+            pdf.setTextColor(150, 150, 150);
+            pdf.setFont('Helvetica', 'italic');
+            pdf.setFontSize(8);
+            pdf.text('Elite Ledger © 2026 | Confidential Financial Statement', pageWidth / 2, pageHeight - 5, { align: 'center' });
+
+            pdf.save('elite-ledger-statement.pdf');
+            toast('✅ PDF exported with professional formatting!');
         }
 
         function toast(msg) {
