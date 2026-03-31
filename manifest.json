@@ -1,0 +1,1 @@
+{\n  "name": "Elite Ledger - Premium Finance Tracker",\n  "short_name": "Elite Ledger",\n  "start_url": "./index.html",\n  "display": "standalone",\n  "background_color": "#050505",\n  "theme_color": "#D4AF37",\n  "icons": [\n    {\n      "src": "icons/rupee.svg",\n      "sizes": "any",\n      "type": "image/svg+xml"\n    }\n  ]\n}
