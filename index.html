@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elite Ledger PWA</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Elite Ledger</h1>
+        <button id="open-modal">Open Modal</button>
+    </header>
+
+    <main>
+        <h2>Your Ledger Entries</h2>
+        <div id="ledger-entries"></div>
+        <button id="export-pdf">Export PDF</button>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Elite Ledger</p>
+    </footer>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Custom Modal</h2>
+            <p>This is a custom modal.</p>
+        </div>
+    </div>
+
+    <script>
+        // Service worker registration
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js')
+                .then(function () {
+                    console.log('Service worker registered');
+                });
+        }
+
+        // LocalStorage persistence
+        function saveEntry(entry) {
+            localStorage.setItem('ledgerEntry', JSON.stringify(entry));
+        }
+
+        // Modal functionality
+        const modal = document.getElementById('modal');
+        const openModalButton = document.getElementById('open-modal');
+        const closeModalButton = document.querySelector('.close-button');
+
+        openModalButton.addEventListener('click', () => {
+            modal.style.display = 'block';
+        });
+
+        closeModalButton.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        // Analytics setup (example using Google Analytics)
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'GA_MEASUREMENT_ID');
+
+        // PDF export functionality
+        document.getElementById('export-pdf').addEventListener('click', () => {
+            const pdfData = document.getElementById('ledger-entries').innerText;
+            const blob = new Blob([pdfData], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ledger.pdf';
+            a.click();
+        });
+    </script>
+
+</body>
+</html>
