@@ -3,30 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Elite Ledger PWA</title>
-    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400&family=Inter:wght@400&display=swap" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
+    <title>Elite Ledger</title>
+    <style>
+        body {
+            background-color: #050505;
+            color: #FAF9F6;
+            font-family: 'Inter', sans-serif;
+        }
+        .noir-gold {
+            border: 1px solid #D4AF37;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        /* Additional CSS styling */
+    </style>
 </head>
 <body>
     <header>
-        <h1>Welcome to Elite Ledger</h1>
+        <h1>Elite Ledger</h1>
+        <nav>
+            <button onclick="openAddModal()">Add Entry</button>
+            <input type="text" id="search" placeholder="Search..." oninput="realTimeSearch()">
+        </nav>
     </header>
     <main>
-        <section>
-            <h2>Features</h2>
-            <ul>
-                <li>Noir & Gold design</li>
-                <li>Full CRUD operations</li>
-                <li>LocalStorage persistence</li>
-                <li>Chart.js analytics</li>
-                <li>PDF export</li>
-                <li>Custom modals</li>
-                <li>Service Worker integration</li>
-            </ul>
-        </section>
+        <div id="hero-stats">
+            <div class="stat-card">Net Surplus: <span id="netSurplus"></span></div>
+            <div class="stat-card">Credits: <span id="credits"></span></div>
+            <div class="stat-card">Expenses: <span id="expenses"></span></div>
+        </div>
+        <canvas id="analyticsChart"></canvas>
+        <div id="entries"></div>
     </main>
     <footer>
-        <p>&copy; 2026 Elite Ledger</p>
+        <p>Copyright &copy; 2026 Elite Ledger</p>
     </footer>
-    <script src="script.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="app.js"></script>
+    <script>
+        // JavaScript for CRUD operations, localStorage, Chart.js, jsPDF, modals, date range filtering, haptic vibration feedback, Service Worker, etc.
+        // Example:
+        // function openAddModal() { ... }
+    </script>
 </body>
 </html>
