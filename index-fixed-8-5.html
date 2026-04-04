@@ -1,0 +1,2791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Elite Ledger</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#D4AF37">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});</script>
+    <style>
+        :root {
+            --gold: #D4AF37; --gold-light: #F0CC5A;
+            --gold-dim: rgba(212,175,55,0.15); --gold-border: rgba(212,175,55,0.32);
+            --green: #34d399; --red: #f87171;
+            --bg1: #050810; --text: #F5F3EE; --text-dim: rgba(245,243,238,0.55);
+            --glass: rgba(255,255,255,0.055); --glass-border: rgba(255,255,255,0.1);
+            --glass-strong: rgba(255,255,255,0.09);
+            --glass-shine: rgba(255,255,255,0.06);
+            --blur: blur(40px); --blur-sm: blur(20px); --radius: 24px; --radius-sm: 16px;
+            --shadow-glass: 0 8px 32px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.3);
+            --shadow-gold: 0 8px 32px rgba(212,175,55,0.2);
+            --inner-glow: inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -1px 0 rgba(0,0,0,0.2);
+        }
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        body {
+            background: radial-gradient(ellipse at 20% 0%, #0d1535 0%, #050810 50%, #080c1a 100%);
+            color:var(--text); font-family:'Outfit',sans-serif; min-height:100vh; overflow-x:hidden;
+        }
+        /* Subtle grid mesh for depth */
+        body > #appScreen::before, #loginScreen::before {
+            content:'';
+            position:fixed; inset:0; z-index:0; pointer-events:none;
+            background-image: linear-gradient(rgba(212,175,55,0.03) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(212,175,55,0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            mask-image: radial-gradient(ellipse at 50% 50%, black 30%, transparent 80%);
+        }
+        /* Layered orb background */
+        body::before, body::after { content:''; position:fixed; border-radius:50%; filter:blur(100px); pointer-events:none; z-index:0; }
+        body::before { width:700px; height:700px; background:radial-gradient(circle,rgba(212,175,55,0.13) 0%,rgba(180,120,20,0.05) 50%,transparent 70%); top:-200px; right:-200px; animation:orb1 9s ease-in-out infinite alternate; }
+        body::after { width:600px; height:600px; background:radial-gradient(circle,rgba(80,60,180,0.12) 0%,rgba(99,102,241,0.06) 50%,transparent 70%); bottom:50px; left:-150px; animation:orb2 12s ease-in-out infinite alternate; }
+        /* Third orb */
+        #extraOrb { position:fixed; width:400px; height:400px; border-radius:50%; filter:blur(90px); background:radial-gradient(circle,rgba(30,150,120,0.08) 0%,transparent 70%); bottom:-100px; right:20%; pointer-events:none; z-index:0; animation:orb2 15s ease-in-out infinite alternate-reverse; }
+        @keyframes orb1 { from{transform:translate(0,0) scale(1)} to{transform:translate(-60px,80px) scale(1.1)} }
+        @keyframes orb2 { from{transform:translate(0,0) scale(1)} to{transform:translate(70px,-50px) scale(1.08)} }
+
+        /* SPLASH SCREEN */
+        #splashScreen {
+            position:fixed; inset:0; z-index:2000;
+            display:flex; flex-direction:column; align-items:center; justify-content:center;
+            background:var(--bg1);
+            animation: splashFade 0.6s ease 2.2s forwards;
+        }
+        @keyframes splashFade { to { opacity:0; pointer-events:none; } }
+        .splash-logo {
+            font-family:'Playfair Display',serif;
+            font-size:52px; font-weight:900; letter-spacing:6px;
+            color:var(--gold);
+            text-shadow:0 0 60px rgba(212,175,55,0.6);
+            animation: splashPop 0.8s cubic-bezier(0.34,1.56,0.64,1) forwards;
+            opacity:0;
+        }
+        @keyframes splashPop { from{opacity:0;transform:scale(0.7)} to{opacity:1;transform:scale(1)} }
+        .splash-sub {
+            font-size:12px; letter-spacing:4px; text-transform:uppercase;
+            color:var(--text-dim); margin-top:12px;
+            animation: splashPop 0.8s cubic-bezier(0.34,1.56,0.64,1) 0.2s forwards;
+            opacity:0;
+        }
+        .splash-ring {
+            width:80px; height:80px; border-radius:50%;
+            border:2px solid var(--gold-border);
+            border-top-color:var(--gold);
+            animation: spin 1s linear infinite, splashPop 0.5s ease 0.5s forwards;
+            opacity:0; margin-top:40px;
+        }
+        .splash-tagline {
+            font-size:11px; color:var(--text-dim); margin-top:16px; letter-spacing:1px;
+            animation: splashPop 0.5s ease 0.8s forwards;
+            opacity:0;
+        }
+
+        /* LIGHT MODE */
+        body.light {
+            --bg1: #eef0f8;
+            --text: #1a1f3a;
+            --text-dim: rgba(26,31,58,0.55);
+            --glass: rgba(255,255,255,0.65);
+            --glass-strong: rgba(255,255,255,0.8);
+            --glass-border: rgba(0,0,0,0.08);
+            --gold-dim: rgba(212,175,55,0.1);
+            --gold-border: rgba(212,175,55,0.35);
+            --shadow-glass: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08);
+            --inner-glow: inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.05);
+        }
+        body.light { background: linear-gradient(135deg,#e8ecf8 0%,#f5f0e8 50%,#eef0f8 100%); }
+        body.light::before { background:radial-gradient(circle,rgba(212,175,55,0.15) 0%,transparent 70%); }
+        body.light::after { background:radial-gradient(circle,rgba(99,102,241,0.08) 0%,transparent 70%); }
+        body.light header { background:rgba(240,242,248,0.8); }
+        body.light .modal-sheet { background:#ffffff; }
+        body.light input, body.light select { background:rgba(0,0,0,0.05); color:var(--text); border-color:rgba(0,0,0,0.12); }
+        body.light input:focus, body.light select:focus { background:rgba(212,175,55,0.08); }
+        body.light select option { background:#ffffff; color:#1a1f3a; }
+        body.light .toast { background:rgba(240,242,248,0.97); color:var(--text); }
+        body.light #roomsScreen, body.light #roomChatScreen { background:var(--bg1); }
+        body.light .room-header, body.light .chat-header, body.light .chat-input-wrap { background:rgba(240,242,248,0.9); }
+        body.light .msg-in { background:rgba(0,0,0,0.07); border-color:rgba(0,0,0,0.08); color:var(--text); }
+        body.light .room-search, body.light .chat-input { background:rgba(0,0,0,0.06); color:var(--text); }
+        body.light .room-modal-box { background:#f5f7ff; }
+        body.light #loginScreen, body.light #paywallScreen, body.light #suspendedScreen, body.light #emailSentScreen { background:var(--bg1); }
+        body.light #splashScreen { background:var(--bg1); }
+        body.light .splash-logo { color:var(--gold); }
+        body.light .splash-tagline, body.light .splash-sub { color:var(--text-dim); }
+
+        /* THEME TOGGLE */
+        .theme-toggle {
+            width:38px; height:38px; border-radius:12px;
+            background:var(--glass); border:1px solid var(--glass-border);
+            color:var(--gold); font-size:16px; cursor:pointer;
+            display:flex; align-items:center; justify-content:center;
+            transition:all 0.2s; backdrop-filter:blur(10px);
+        }
+        .theme-toggle:active { transform:scale(0.92); }
+
+        /* NOTIFICATION PERMISSION BANNER */
+        .notif-banner {
+            padding:12px 16px; display:flex; align-items:center;
+            justify-content:space-between; gap:12px;
+            background:rgba(96,165,250,0.1); border:1px solid rgba(96,165,250,0.25);
+            border-radius:var(--radius); margin:0 0 0 0;
+            position:relative; z-index:1;
+        }
+        .notif-banner-text { font-size:12px; color:#60a5fa; flex:1; line-height:1.4; }
+        .btn-notif { background:#60a5fa; color:#050505; border:none; cursor:pointer;
+            font-family:'Outfit',sans-serif; font-weight:700; font-size:12px;
+            padding:8px 14px; border-radius:10px; white-space:nowrap; flex-shrink:0; }
+
+        .glass {
+            background: var(--glass);
+            backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius);
+            position: relative; z-index: 1;
+            box-shadow: var(--shadow-glass), var(--inner-glow);
+        }
+        .glass::before {
+            content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+            background: linear-gradient(135deg, rgba(255,255,255,0.07) 0%, transparent 50%, rgba(255,255,255,0.02) 100%);
+        }
+        .glass-gold {
+            background: linear-gradient(135deg, rgba(212,175,55,0.12) 0%, rgba(212,175,55,0.06) 100%);
+            backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+            border: 1.5px solid var(--gold-border);
+            border-radius: var(--radius);
+            position: relative; z-index: 1;
+            box-shadow: var(--shadow-gold), var(--inner-glow), 0 0 0 1px rgba(212,175,55,0.05) inset;
+        }
+        .glass-gold::before {
+            content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 55%, rgba(212,175,55,0.04) 100%);
+        }
+
+        /* LOGIN */
+        #loginScreen { position:fixed; inset:0; z-index:1000; display:flex; flex-direction:column; align-items:center; justify-content:center; background:var(--bg1); padding:40px 24px; }
+        .login-logo { font-family:'Playfair Display',serif; font-size:42px; font-weight:900; letter-spacing:5px; color:var(--gold); text-shadow:0 0 40px rgba(212,175,55,0.5); margin-bottom:10px; }
+        .login-sub { color:var(--text-dim); font-size:14px; letter-spacing:2px; text-transform:uppercase; margin-bottom:60px; }
+        .login-card { width:100%; max-width:360px; padding:36px 28px; text-align:center; }
+        .login-title { font-family:'Playfair Display',serif; font-size:24px; color:var(--gold); margin-bottom:8px; }
+        .login-desc { color:var(--text-dim); font-size:13px; margin-bottom:32px; line-height:1.6; }
+        .btn-google { width:100%; padding:16px; border-radius:var(--radius-sm); background:white; color:#1f1f1f; border:none; cursor:pointer; font-family:'Outfit',sans-serif; font-size:15px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:12px; transition:all 0.25s; box-shadow:0 4px 20px rgba(0,0,0,0.3); }
+        .btn-google:hover { transform:translateY(-2px); box-shadow:0 8px 28px rgba(0,0,0,0.4); }
+        .btn-google img { width:20px; height:20px; }
+
+        /* MAGIC LINK */
+        .divider { display:flex; align-items:center; gap:12px; margin:20px 0; }
+        .divider-line { flex:1; height:1px; background:var(--glass-border); }
+        .divider-text { font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; }
+        .btn-email { width:100%; padding:14px; border-radius:var(--radius-sm); background:var(--glass); color:var(--text); border:1.5px solid var(--glass-border); cursor:pointer; font-family:'Outfit',sans-serif; font-size:15px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:12px; transition:all 0.25s; }
+        .btn-email:hover { background:var(--gold-dim); border-color:var(--gold-border); }
+        .email-input-wrap { display:none; margin-top:16px; }
+        .email-input-wrap.active { display:block; }
+        .email-input { width:100%; padding:13px 16px; border-radius:var(--radius-sm); background:rgba(255,255,255,0.06); border:1.5px solid var(--glass-border); color:var(--text); font-family:'Outfit',sans-serif; font-size:15px; margin-bottom:10px; text-align:center; }
+        .email-input:focus { outline:none; border-color:var(--gold); box-shadow:0 0 0 3px rgba(212,175,55,0.15); }
+        .btn-send-link { width:100%; padding:14px; border-radius:var(--radius-sm); background:linear-gradient(135deg,#D4AF37,#F0CC5A); color:#050505; border:none; cursor:pointer; font-family:'Outfit',sans-serif; font-size:15px; font-weight:700; transition:all 0.25s; }
+        .btn-send-link:active { transform:scale(0.97); }
+
+        /* EMAIL SENT SCREEN */
+        #emailSentScreen { position:fixed; inset:0; z-index:1100; display:none; flex-direction:column; align-items:center; justify-content:center; background:var(--bg1); padding:40px 24px; }
+        .email-sent-card { width:100%; max-width:360px; padding:36px 28px; text-align:center; }
+        .email-sent-icon { font-size:64px; margin-bottom:20px; animation:splashPop 0.6s cubic-bezier(0.34,1.56,0.64,1); }
+        .email-sent-title { font-family:'Playfair Display',serif; font-size:26px; color:var(--gold); margin-bottom:12px; }
+        .email-sent-desc { color:var(--text-dim); font-size:13px; line-height:1.7; margin-bottom:28px; }
+        .email-sent-addr { color:var(--gold); font-weight:700; font-size:14px; }
+        .btn-back-login { width:100%; padding:13px; border-radius:var(--radius-sm); background:var(--glass); color:var(--gold); border:1.5px solid var(--gold-border); cursor:pointer; font-family:'Outfit',sans-serif; font-size:14px; font-weight:600; margin-top:10px; }
+
+        .login-note { margin-top:20px; font-size:11px; color:var(--text-dim); line-height:1.6; }
+
+        /* PAYWALL */
+        #suspendedScreen { position:fixed; inset:0; z-index:1100; display:none; flex-direction:column; align-items:center; justify-content:center; background:#070b1a; padding:32px 24px; text-align:center; }
+
+
+        /* ANNOUNCEMENT BANNER */
+        .announcement-banner {
+            position:relative; z-index:1;
+            padding:14px 18px;
+            display:none;
+            align-items:center; gap:12px;
+            background:linear-gradient(135deg,rgba(212,175,55,0.15),rgba(240,204,90,0.1));
+            border:1.5px solid var(--gold-border);
+            border-radius:var(--radius);
+            animation:fadeSlide 0.4s ease;
+        }
+        .announcement-banner.active { display:flex; }
+        .announcement-emoji { font-size:28px; flex-shrink:0; }
+        .announcement-content { flex:1; min-width:0; }
+        .announcement-label {
+            font-size:9px; font-weight:800; text-transform:uppercase;
+            letter-spacing:2px; color:var(--gold); opacity:0.7; margin-bottom:3px;
+        }
+        .announcement-text {
+            font-size:13px; font-weight:500; color:var(--text);
+            line-height:1.5;
+        }
+        .announcement-dismiss {
+            background:none; border:none; color:var(--text-dim);
+            font-size:18px; cursor:pointer; flex-shrink:0;
+            padding:4px; line-height:1;
+        }
+        .announcement-dismiss:active { transform:scale(0.9); }
+
+
+        /* CONFETTI */
+        .confetti-container {
+            position:fixed; inset:0; pointer-events:none; z-index:9998; overflow:hidden;
+        }
+        .confetti-piece {
+            position:absolute; width:10px; height:10px;
+            top:-20px; opacity:0;
+            animation: confettiFall linear forwards;
+        }
+        @keyframes confettiFall {
+            0%   { transform:translateY(0) rotate(0deg) scale(1); opacity:1; }
+            70%  { opacity:1; }
+            100% { transform:translateY(110vh) rotate(900deg) scale(0.5); opacity:0; }
+        }
+        /* Sparkle particles */
+        .sparkle-burst {
+            position:fixed; pointer-events:none; z-index:9997;
+            width:6px; height:6px; border-radius:50%;
+            animation: sparklePop 0.9s ease-out forwards;
+        }
+        @keyframes sparklePop {
+            0%   { transform:scale(0) translate(0,0); opacity:1; }
+            100% { transform:scale(1) translate(var(--sx),var(--sy)); opacity:0; }
+        }
+
+        /* ENTRY APPEAR */
+        @keyframes entryAppear {
+            0%   { opacity:0; transform:translateX(-28px) scale(0.95); filter:blur(5px); }
+            60%  { opacity:1; filter:blur(0); }
+            80%  { transform:translateX(5px) scale(1.015); }
+            100% { transform:translateX(0) scale(1); opacity:1; }
+        }
+        @keyframes entryGlowPulse {
+            0%   { box-shadow:0 0 0 0 rgba(212,175,55,0),inset 0 1px 0 rgba(255,255,255,0.1); }
+            35%  { box-shadow:0 0 28px 8px rgba(212,175,55,0.3),inset 0 0 16px rgba(212,175,55,0.1); background:rgba(212,175,55,0.06); }
+            100% { box-shadow:0 0 0 0 rgba(212,175,55,0),inset 0 1px 0 rgba(255,255,255,0.04); }
+        }
+        .entry-row-new {
+            animation: entryAppear 0.55s cubic-bezier(0.34,1.56,0.64,1) forwards,
+                       entryGlowPulse 1.4s ease-out 0.08s forwards !important;
+        }
+
+        /* ENTRY VANISH */
+        @keyframes entryVanish {
+            0%   { opacity:1; transform:translateX(0) scale(1); filter:blur(0); max-height:90px; }
+            25%  { transform:translateX(10px) scale(1.02); background:rgba(248,113,113,0.08); }
+            65%  { opacity:0.2; transform:translateX(70px) scale(0.88); filter:blur(4px); }
+            100% { opacity:0; transform:translateX(90px) scale(0.82); filter:blur(8px); max-height:0; padding-top:0; padding-bottom:0; border:none; }
+        }
+        .entry-row-vanish {
+            animation: entryVanish 0.48s cubic-bezier(0.4,0,0.6,1) forwards !important;
+            overflow:hidden;
+            pointer-events:none;
+        }
+
+        /* DELETE CONFIRM MODAL */
+        .delete-overlay { position:fixed; inset:0; z-index:1200; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.75); backdrop-filter:blur(10px); padding:24px; }
+        .delete-overlay.active { display:flex; }
+        .delete-box { width:100%; max-width:320px; padding:28px 24px; text-align:center; }
+        .delete-emoji { font-size:44px; margin-bottom:14px; }
+        .delete-title { font-family:'Playfair Display',serif; font-size:22px; color:var(--gold); margin-bottom:8px; }
+        .delete-desc { color:var(--text-dim); font-size:13px; margin-bottom:24px; line-height:1.6; }
+        .delete-btns { display:flex; gap:10px; }
+        .delete-btns .btn { flex:1; padding:13px; font-size:13px; border-radius:12px; }
+
+        .signout-overlay { position:fixed; inset:0; z-index:1200; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.75); backdrop-filter:blur(10px); padding:24px; }
+        .signout-overlay.active { display:flex; }
+        .signout-box { width:100%; max-width:320px; padding:28px 24px; text-align:center; background:rgba(255,255,255,0.065); backdrop-filter:blur(28px); border:1px solid rgba(255,255,255,0.12); border-radius:20px; }
+        .signout-emoji { font-size:44px; margin-bottom:14px; }
+        .signout-title { font-family:'Playfair Display',serif; font-size:22px; color:var(--gold); margin-bottom:8px; }
+        .signout-desc { color:rgba(245,243,238,0.55); font-size:13px; margin-bottom:24px; line-height:1.6; }
+        .signout-btns { display:flex; gap:10px; }
+        .signout-btns .btn { flex:1; padding:13px; font-size:13px; border-radius:12px; }
+        .suspended-icon { font-size:72px; margin-bottom:20px; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+        .suspended-title { font-family:'Playfair Display',serif; font-size:28px; font-weight:900; color:#f87171; margin-bottom:10px; letter-spacing:1px; }
+        .suspended-desc { color:rgba(245,243,238,0.6); font-size:14px; line-height:1.7; margin-bottom:28px; }
+        .suspended-tg { display:inline-flex; align-items:center; gap:10px; background:rgba(96,165,250,0.12); border:1.5px solid rgba(96,165,250,0.35); border-radius:40px; padding:12px 22px; color:#60a5fa; font-size:14px; font-weight:600; text-decoration:none; transition:all 0.2s; }
+        .suspended-tg:active { transform:scale(0.96); }
+        .suspended-tg svg { width:20px; height:20px; fill:#60a5fa; flex-shrink:0; }
+        #paywallScreen { position:fixed; inset:0; z-index:900; display:none; flex-direction:column; align-items:center; justify-content:center; background:rgba(7,11,26,0.97); backdrop-filter:blur(20px); padding:24px; }
+        .paywall-card { width:100%; max-width:400px; padding:36px 28px; text-align:center; }
+        .paywall-crown { font-size:56px; margin-bottom:16px; }
+        .paywall-title { font-family:'Playfair Display',serif; font-size:28px; color:var(--gold); margin-bottom:8px; }
+        .paywall-desc { color:var(--text-dim); font-size:13px; margin-bottom:28px; line-height:1.7; }
+        .paywall-features { text-align:left; margin-bottom:28px; display:flex; flex-direction:column; gap:10px; }
+        .paywall-feature { display:flex; align-items:center; gap:12px; font-size:14px; }
+        .paywall-feature .check { color:var(--green); font-size:16px; }
+        .paywall-price { font-size:42px; font-weight:800; color:var(--gold); margin-bottom:4px; }
+        .paywall-price-sub { font-size:13px; color:var(--text-dim); margin-bottom:28px; }
+        .btn-premium { width:100%; padding:16px; border-radius:var(--radius-sm); background:linear-gradient(135deg,#D4AF37,#F0CC5A); color:#050505; border:none; cursor:pointer; font-family:'Outfit',sans-serif; font-size:16px; font-weight:700; box-shadow:0 6px 24px rgba(212,175,55,0.4); transition:all 0.25s; margin-bottom:12px; }
+        .btn-premium:hover { box-shadow:0 10px 32px rgba(212,175,55,0.6); transform:translateY(-2px); }
+        .paywall-note { font-size:11px; color:var(--text-dim); line-height:1.6; }
+        .free-limit-bar { background:rgba(248,113,113,0.1); border:1px solid rgba(248,113,113,0.3); border-radius:var(--radius-sm); padding:12px 16px; margin-bottom:20px; font-size:13px; color:var(--red); display:none; }
+
+        /* APP */
+        #appScreen { display:none; }
+        header {
+            position:sticky; top:0; z-index:200; padding:env(safe-area-inset-top,0) 0 0;
+            background: rgba(5,8,16,0.55);
+            backdrop-filter: blur(60px) saturate(180%); -webkit-backdrop-filter: blur(60px) saturate(180%);
+            border-bottom: 1px solid rgba(212,175,55,0.2);
+            box-shadow: 0 1px 0 rgba(255,255,255,0.04), 0 4px 24px rgba(0,0,0,0.4);
+        }
+        .header-inner { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:10px; }
+        .header-left { display:flex; align-items:center; gap:12px; }
+        .header-title { font-family:'Playfair Display',serif; font-size:24px; font-weight:900; letter-spacing:4px; color:var(--gold); text-shadow:0 0 30px rgba(212,175,55,0.4); }
+        .user-avatar { width:34px; height:34px; border-radius:50%; border:2px solid var(--gold-border); object-fit:cover; }
+        .user-name { font-size:12px; color:var(--text-dim); max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .premium-badge { font-size:10px; font-weight:700; background:linear-gradient(135deg,#D4AF37,#F0CC5A); color:#050505; padding:2px 8px; border-radius:6px; letter-spacing:0.5px; display:none; }
+        .header-actions { display:flex; gap:8px; align-items:center; }
+
+        .btn { border:none; cursor:pointer; font-family:'Outfit',sans-serif; font-weight:600; letter-spacing:0.5px; transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1); display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+        .btn:active { transform:scale(0.94); }
+        .btn-gold { background:linear-gradient(135deg,#D4AF37,#F0CC5A); color:#050505; padding:11px 18px; border-radius:var(--radius-sm); font-size:13px; box-shadow:0 6px 20px rgba(212,175,55,0.4), 0 2px 0 rgba(255,255,255,0.15) inset; }
+        .btn-gold:active { box-shadow:0 2px 8px rgba(212,175,55,0.3); }
+        .btn-glass {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+            color:var(--gold); border:1px solid rgba(255,255,255,0.12);
+            padding:11px 16px; border-radius:var(--radius-sm); font-size:13px;
+            backdrop-filter:var(--blur-sm);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1);
+        }
+        .btn-glass:hover { background:linear-gradient(135deg, rgba(212,175,55,0.18) 0%, rgba(212,175,55,0.08) 100%); border-color:var(--gold-border); }
+        .btn-icon {
+            background: linear-gradient(135deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.04) 100%);
+            border:1px solid rgba(255,255,255,0.1); color:var(--gold);
+            width:38px; height:38px; border-radius:12px; font-size:15px;
+            backdrop-filter:var(--blur-sm);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.09);
+        }
+        .btn-danger { background:rgba(248,113,113,0.1); color:var(--red); border:1px solid rgba(248,113,113,0.25); padding:7px 10px; border-radius:10px; font-size:12px; backdrop-filter:var(--blur-sm); }
+        .btn-edit { background:rgba(212,175,55,0.1); color:var(--gold); border:1px solid rgba(212,175,55,0.22); padding:7px 10px; border-radius:10px; font-size:12px; backdrop-filter:var(--blur-sm); }
+
+        main { padding:20px; max-width:900px; margin:0 auto; display:flex; flex-direction:column; gap:20px; padding-bottom:40px; }
+
+        /* FREE LIMIT BANNER */
+        .limit-banner { padding:14px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+        .limit-text { font-size:13px; }
+        .limit-text strong { color:var(--red); }
+        .limit-bar-wrap { width:100%; height:6px; background:rgba(255,255,255,0.1); border-radius:3px; margin-top:8px; }
+        .limit-bar-fill { height:6px; border-radius:3px; background:linear-gradient(90deg,var(--green),var(--red)); transition:width 0.4s; }
+
+        .stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+        .stat-card {
+            padding:18px 14px; text-align:center; overflow:hidden;
+            background: linear-gradient(160deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%);
+            box-shadow: var(--shadow-glass), var(--inner-glow);
+            border: 1px solid rgba(255,255,255,0.12);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .stat-card:active { transform: scale(0.97); }
+        .stat-card::after {
+            content:''; position:absolute; top:0; left:-60%; width:40%; height:100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+            transform: skewX(-20deg);
+            animation: shimmer 4s ease-in-out infinite;
+        }
+        @keyframes shimmer { 0%,100%{left:-60%} 50%{left:120%} }
+        .stat-label { font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:var(--gold); opacity:0.7; margin-bottom:8px; font-weight:600; }
+        .stat-value { font-size:20px; font-weight:700; line-height:1; }
+        @media(max-width:400px){ .stat-value{font-size:15px} .stat-label{font-size:9px} }
+
+        .category-pill { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:20px; font-size:12px; font-weight:600; cursor:pointer; transition:all 0.25s; border:1px solid transparent; white-space:nowrap; backdrop-filter:var(--blur-sm); }
+        .category-pill.active { border-color:rgba(212,175,55,0.4); background:linear-gradient(135deg,rgba(212,175,55,0.2),rgba(212,175,55,0.08)); color:var(--gold); box-shadow:0 4px 16px rgba(212,175,55,0.15), inset 0 1px 0 rgba(255,255,255,0.12); }
+        .category-pill:not(.active) { background:linear-gradient(135deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03)); color:var(--text-dim); border-color:rgba(255,255,255,0.08); box-shadow:inset 0 1px 0 rgba(255,255,255,0.06); }
+        .pills-scroll { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none; }
+        .pills-scroll::-webkit-scrollbar { display:none; }
+        .filter-card { padding:16px; }
+        .filter-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
+        .search-wrap { position:relative; margin-bottom:10px; }
+        .search-wrap input { width:100%; padding-left:40px; }
+        .search-icon { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--text-dim); font-size:15px; pointer-events:none; }
+        input,select { background:linear-gradient(135deg,rgba(255,255,255,0.08) 0%,rgba(255,255,255,0.04) 100%); border:1px solid rgba(255,255,255,0.1); border-radius:var(--radius-sm); padding:12px 14px; color:var(--text); font-family:'Outfit',sans-serif; font-size:14px; width:100%; transition:all 0.25s; -webkit-appearance:none; backdrop-filter:var(--blur-sm); box-shadow:inset 0 1px 0 rgba(255,255,255,0.08), 0 2px 8px rgba(0,0,0,0.2); }
+        input:focus,select:focus { outline:none; border-color:rgba(212,175,55,0.5); background:linear-gradient(135deg,rgba(212,175,55,0.1) 0%,rgba(212,175,55,0.04) 100%); box-shadow:0 0 0 3px rgba(212,175,55,0.12), inset 0 1px 0 rgba(255,255,255,0.1); }
+        select option { background:#0f1428; color:var(--text); }
+
+        .chart-card { padding:20px; height:260px; display:flex; align-items:center; justify-content:center; }
+        .entries-card { padding:0; overflow:hidden; }
+        .entries-header { display:flex; justify-content:space-between; align-items:center; padding:18px 20px 14px; border-bottom:1px solid rgba(255,255,255,0.07); }
+        .entries-title { font-family:'Playfair Display',serif; font-size:18px; color:var(--gold); }
+        .entry-count { font-size:12px; color:var(--text-dim); background:rgba(255,255,255,0.06); padding:4px 10px; border-radius:20px; border:1px solid rgba(255,255,255,0.08); backdrop-filter:var(--blur-sm); }
+        .entry-row { display:flex; align-items:center; gap:14px; padding:14px 20px; border-bottom:1px solid rgba(255,255,255,0.04); transition:background 0.2s; animation:fadeSlide 0.3s ease forwards; }
+        .entry-row:last-child { border-bottom:none; }
+        .entry-row:hover { background:rgba(255,255,255,0.03); }
+        .entry-icon { width:42px; height:42px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; backdrop-filter:var(--blur-sm); box-shadow:inset 0 1px 0 rgba(255,255,255,0.12); }
+        .entry-icon.credit { background:linear-gradient(135deg,rgba(52,211,153,0.2),rgba(52,211,153,0.08)); border:1px solid rgba(52,211,153,0.2); }
+        .entry-icon.expense { background:linear-gradient(135deg,rgba(248,113,113,0.2),rgba(248,113,113,0.08)); border:1px solid rgba(248,113,113,0.2); }
+        .entry-info { flex:1; min-width:0; }
+        .entry-title { font-weight:600; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .entry-meta { font-size:11px; color:var(--text-dim); margin-top:2px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+        .cat-badge { padding:2px 8px; border-radius:6px; font-size:10px; font-weight:600; }
+        .entry-right { text-align:right; flex-shrink:0; }
+        .entry-amount { font-size:15px; font-weight:700; }
+        .entry-amount.credit { color:var(--green); }
+        .entry-amount.expense { color:var(--red); }
+        .entry-balance { font-size:10px; color:var(--text-dim); margin-top:2px; }
+        .entry-actions { display:flex; gap:6px; flex-shrink:0; }
+
+        /* LOCKED PDF BUTTON */
+        .pdf-locked { position:relative; display:inline-flex; }
+        .lock-badge { position:absolute; top:-6px; right:-6px; background:var(--red); color:white; font-size:9px; padding:2px 5px; border-radius:6px; font-weight:700; }
+
+        .modal-overlay { display:none; position:fixed; inset:0; z-index:500; background:rgba(0,0,0,0.65); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); justify-content:flex-end; align-items:flex-end; }
+        .modal-overlay.active { display:flex; }
+        .modal-sheet {
+            width:100%; max-width:600px; margin:0 auto;
+            background: linear-gradient(160deg, rgba(20,26,50,0.97) 0%, rgba(10,14,30,0.98) 100%);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-bottom: none;
+            border-radius:28px 28px 0 0;
+            padding:0 0 env(safe-area-inset-bottom,20px);
+            animation:sheetUp 0.35s cubic-bezier(0.34,1.56,0.64,1);
+            max-height:92vh; overflow-y:auto;
+            box-shadow: 0 -8px 60px rgba(0,0,0,0.6), 0 -1px 0 rgba(212,175,55,0.15), inset 0 1px 0 rgba(255,255,255,0.08);
+        }
+        @keyframes sheetUp { from{transform:translateY(100%);opacity:0} to{transform:translateY(0);opacity:1} }
+        .sheet-handle { width:40px; height:4px; background:rgba(255,255,255,0.2); border-radius:2px; margin:14px auto 0; }
+        .sheet-header { padding:16px 24px 0; display:flex; justify-content:space-between; align-items:center; }
+        .sheet-title { font-family:'Playfair Display',serif; font-size:22px; color:var(--gold); }
+        .sheet-close { width:32px; height:32px; border-radius:50%; background:var(--glass); border:1px solid var(--glass-border); color:var(--text-dim); font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+        .sheet-body { padding:20px 24px; display:flex; flex-direction:column; gap:14px; }
+        .form-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1.2px; color:var(--gold); opacity:0.8; margin-bottom:6px; display:block; }
+        .type-toggle { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+        .type-btn { padding:12px; border-radius:var(--radius-sm); border:1.5px solid var(--glass-border); background:var(--glass); color:var(--text-dim); font-family:'Outfit',sans-serif; font-size:14px; font-weight:600; cursor:pointer; transition:all 0.2s; text-align:center; }
+        .type-btn.active-expense { border-color:var(--red); background:rgba(248,113,113,0.12); color:var(--red); }
+        .type-btn.active-credit { border-color:var(--green); background:rgba(52,211,153,0.12); color:var(--green); }
+        .sheet-footer { padding:0 24px 20px; display:flex; gap:10px; }
+        .sheet-footer .btn { flex:1; padding:14px; font-size:15px; border-radius:var(--radius-sm); }
+
+        .spinner { width:40px; height:40px; border:3px solid var(--gold-border); border-top-color:var(--gold); border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto; }
+        @keyframes spin { to{transform:rotate(360deg)} }
+        #loadingState { text-align:center; padding:50px 20px; }
+        #loadingState p { color:var(--text-dim); margin-top:16px; font-size:14px; }
+        .empty-state { text-align:center; padding:50px 20px; color:var(--text-dim); }
+        .empty-state .emoji { font-size:48px; margin-bottom:16px; }
+        .empty-state h3 { font-size:20px; color:var(--gold); margin-bottom:8px; font-family:'Playfair Display',serif; }
+
+        /* BUTTON SPINNER */
+        .btn-spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(0,0,0,0.3); border-top-color:#050505; border-radius:50%; animation:spin 0.7s linear infinite; vertical-align:middle; margin-right:4px; }
+
+        /* OFFLINE BANNER */
+        #offlineBanner { display:none; position:fixed; top:0; left:0; right:0; z-index:9999; background:#f87171; color:#fff; font-size:13px; font-weight:700; padding:10px 16px; text-align:center; align-items:center; justify-content:center; gap:8px; }
+
+        .upi-bar { position:relative; z-index:1; padding:18px 20px; display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; margin:0 20px 20px; max-width:900px; margin-left:auto; margin-right:auto; overflow:hidden; }
+        .upi-bar::after { content:''; position:absolute; top:-50%; right:-10%; width:200px; height:200%; background:radial-gradient(ellipse,rgba(212,175,55,0.08) 0%,transparent 70%); pointer-events:none; }
+        .upi-label { font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:var(--gold); opacity:0.7; font-weight:600; margin-bottom:4px; }
+        .upi-id { font-size:13px; font-weight:600; color:var(--text); }
+        .btn-upi { background:linear-gradient(135deg,#00b386,#00d4a0); color:#fff; border:none; cursor:pointer; font-family:'Outfit',sans-serif; font-weight:700; padding:12px 22px; border-radius:14px; font-size:14px; white-space:nowrap; box-shadow:0 6px 20px rgba(0,180,130,0.35); display:flex; align-items:center; gap:8px; transition:all 0.25s; }
+        .btn-upi:active { transform:scale(0.96); }
+
+        .toast {
+            position:fixed; bottom:30px; left:50%; transform:translateX(-50%);
+            padding:13px 22px; border-radius:40px;
+            background: linear-gradient(135deg, rgba(15,20,40,0.97) 0%, rgba(8,12,28,0.97) 100%);
+            border:1px solid rgba(212,175,55,0.25);
+            color:var(--text); font-size:14px; font-weight:500;
+            backdrop-filter:blur(40px); z-index:9999; white-space:nowrap;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.07) inset;
+            animation:toastIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        @keyframes toastIn { from{opacity:0;transform:translateX(-50%) translateY(20px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
+        footer { text-align:center; padding:24px 20px; color:var(--text-dim); font-size:11px; border-top:1px solid rgba(212,175,55,0.12); margin-top:10px; position:relative; z-index:1; }
+        @keyframes fadeSlide { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+        ::-webkit-scrollbar { width:4px; }
+        ::-webkit-scrollbar-track { background:transparent; }
+        ::-webkit-scrollbar-thumb { background:rgba(212,175,55,0.2); border-radius:4px; }
+
+        /* ROOMS SCREENS */
+        #roomsScreen, #roomChatScreen { position:fixed; inset:0; z-index:500; display:none; flex-direction:column; background:linear-gradient(160deg,#07091a 0%,#050810 100%); }
+        #roomsScreen.active, #roomChatScreen.active { display:flex; }
+        .room-header { display:flex; align-items:center; gap:12px; padding:calc(env(safe-area-inset-top,0px) + 16px) 20px 16px; background:rgba(5,8,16,0.7); backdrop-filter:blur(50px); border-bottom:1px solid rgba(212,175,55,0.18); flex-shrink:0; box-shadow:0 1px 0 rgba(255,255,255,0.04); }
+        .room-header-title { font-family:'Playfair Display',serif; font-size:20px; color:var(--gold); flex:1; }
+        .room-back { background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1); color:var(--gold); width:36px; height:36px; border-radius:10px; font-size:18px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; backdrop-filter:var(--blur-sm); }
+        .rooms-list { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px; }
+        .room-item { display:flex; align-items:center; gap:12px; padding:16px; background:linear-gradient(135deg,rgba(255,255,255,0.07) 0%,rgba(255,255,255,0.03) 100%); border:1px solid rgba(255,255,255,0.09); border-radius:16px; cursor:pointer; transition:all 0.2s; backdrop-filter:var(--blur-sm); box-shadow:var(--inner-glow); }
+        .room-item:active { transform:scale(0.98); background:rgba(212,175,55,0.1); }
+        .room-icon { width:48px; height:48px; border-radius:14px; background:rgba(212,175,55,0.1); border:1.5px solid rgba(212,175,55,0.25); display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; backdrop-filter:var(--blur-sm); }
+        .room-info { flex:1; min-width:0; }
+        .room-name { font-size:15px; font-weight:700; }
+        .room-meta { font-size:11px; color:var(--text-dim); margin-top:3px; display:flex; align-items:center; gap:6px; }
+        .room-lock { font-size:11px; color:var(--gold); }
+        .rooms-footer { padding:16px; display:flex; gap:10px; flex-shrink:0; }
+        .btn-create-room { flex:1; padding:14px; background:linear-gradient(135deg,#D4AF37,#F0CC5A); color:#050505; border:none; border-radius:14px; font-family:'Outfit',sans-serif; font-size:14px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 6px 20px rgba(212,175,55,0.35); }
+        .btn-join-room { flex:1; padding:14px; background:linear-gradient(135deg,rgba(255,255,255,0.09),rgba(255,255,255,0.04)); color:var(--gold); border:1.5px solid rgba(212,175,55,0.3); border-radius:14px; font-family:'Outfit',sans-serif; font-size:14px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; backdrop-filter:var(--blur-sm); box-shadow:var(--inner-glow); }
+
+        /* CHAT SCREEN */
+        .chat-header { display:flex; align-items:center; gap:12px; padding:calc(env(safe-area-inset-top,0px) + 16px) 20px 16px; background:rgba(5,8,16,0.7); backdrop-filter:blur(50px); border-bottom:1px solid rgba(212,175,55,0.18); flex-shrink:0; box-shadow:0 1px 0 rgba(255,255,255,0.04); }
+        .chat-room-name { font-size:15px; font-weight:700; }
+        .chat-room-meta { font-size:11px; color:var(--text-dim); }
+        .chat-messages { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px; }
+        .msg-bubble { max-width:78%; padding:10px 14px; border-radius:18px; font-size:14px; line-height:1.5; word-break:break-word; }
+        .msg-out { background:linear-gradient(135deg,#D4AF37,#F0CC5A); color:#050505; align-self:flex-end; border-bottom-right-radius:4px; font-weight:500; box-shadow:0 4px 16px rgba(212,175,55,0.25); }
+        .msg-in { background:linear-gradient(135deg,rgba(255,255,255,0.09),rgba(255,255,255,0.04)); border:1px solid rgba(255,255,255,0.09); color:var(--text); align-self:flex-start; border-bottom-left-radius:4px; backdrop-filter:var(--blur-sm); box-shadow:var(--inner-glow); }
+        .msg-sender { font-size:10px; color:var(--gold); font-weight:600; margin-bottom:3px; }
+        .msg-time { font-size:10px; opacity:0.6; margin-top:4px; }
+        .chat-input-wrap { display:flex; gap:10px; padding:12px 16px; padding-bottom:calc(env(safe-area-inset-bottom,0px) + 12px); background:rgba(5,8,16,0.7); backdrop-filter:blur(50px); border-top:1px solid rgba(255,255,255,0.07); flex-shrink:0; }
+        .chat-input { flex:1; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1); border-radius:22px; padding:10px 16px; color:var(--text); font-family:'Outfit',sans-serif; font-size:14px; resize:none; max-height:100px; backdrop-filter:var(--blur-sm); }
+        .chat-input:focus { outline:none; border-color:var(--gold); box-shadow:0 0 0 3px rgba(212,175,55,0.12); }
+        .chat-send { background:linear-gradient(135deg,#D4AF37,#F0CC5A); color:#050505; border:none; width:42px; height:42px; border-radius:50%; font-size:18px; cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 16px rgba(212,175,55,0.35); }
+
+        /* ROOM MODALS */
+        .room-modal-overlay { position:fixed; inset:0; z-index:600; display:none; align-items:flex-end; justify-content:center; background:rgba(0,0,0,0.75); backdrop-filter:blur(10px); }
+        .room-modal-overlay.active { display:flex; }
+        .room-modal-box { width:100%; max-width:500px; background:#0d1425; border:1px solid var(--glass-border); border-radius:24px 24px 0 0; padding:24px 20px; max-height:85vh; display:flex; flex-direction:column; overflow-y:auto; }
+        .room-modal-title { font-family:'Playfair Display',serif; font-size:20px; color:var(--gold); margin-bottom:20px; text-align:center; }
+        .room-field { margin-bottom:14px; }
+        .room-field label { display:block; font-size:12px; font-weight:600; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; }
+        .room-input { width:100%; padding:13px 16px; border-radius:var(--radius-sm); background:rgba(255,255,255,0.06); border:1.5px solid var(--glass-border); color:var(--text); font-family:'Outfit',sans-serif; font-size:15px; }
+        .room-input:focus { outline:none; border-color:var(--gold); box-shadow:0 0 0 3px rgba(212,175,55,0.12); }
+        .room-toggle-row { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:rgba(255,255,255,0.04); border:1px solid var(--glass-border); border-radius:14px; margin-bottom:14px; }
+        .room-toggle-label { font-size:14px; font-weight:600; }
+        .room-toggle-sub { font-size:11px; color:var(--text-dim); margin-top:2px; }
+        .toggle-switch { position:relative; width:46px; height:26px; flex-shrink:0; }
+        .toggle-switch input { opacity:0; width:0; height:0; }
+        .toggle-slider { position:absolute; inset:0; background:rgba(255,255,255,0.1); border-radius:26px; cursor:pointer; transition:0.3s; }
+        .toggle-slider:before { content:''; position:absolute; width:20px; height:20px; left:3px; top:3px; background:white; border-radius:50%; transition:0.3s; }
+        .toggle-switch input:checked + .toggle-slider { background:var(--gold); }
+        .toggle-switch input:checked + .toggle-slider:before { transform:translateX(20px); }
+        .qr-wrap { display:flex; flex-direction:column; align-items:center; gap:12px; padding:20px; background:white; border-radius:16px; margin:16px 0; }
+        .room-code-display { font-family:monospace; font-size:32px; font-weight:900; color:var(--gold); letter-spacing:8px; text-align:center; padding:16px; background:rgba(212,175,55,0.08); border:1.5px solid var(--gold-border); border-radius:14px; margin:12px 0; }
+
+        /* LEDGER TOGGLE */
+        .ledger-toggle-wrap {
+            display:flex; gap:6px; padding:6px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
+            border:1px solid rgba(255,255,255,0.09);
+            border-radius:20px; backdrop-filter:var(--blur);
+            margin:0 20px; max-width:860px; margin-left:auto; margin-right:auto;
+            position:relative; z-index:1;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.07);
+        }
+        .ledger-tab {
+            flex:1; padding:11px 16px; border-radius:15px; border:none;
+            font-family:'Outfit',sans-serif; font-size:13px; font-weight:700;
+            cursor:pointer; transition:all 0.3s; letter-spacing:0.5px;
+            background:transparent; color:var(--text-dim);
+        }
+        .ledger-tab.active {
+            background: linear-gradient(135deg,rgba(212,175,55,0.22),rgba(240,204,90,0.1));
+            border:1px solid rgba(212,175,55,0.35);
+            color:var(--gold);
+            box-shadow: 0 4px 20px rgba(212,175,55,0.18), inset 0 1px 0 rgba(255,255,255,0.12);
+        }
+        .ledger-tab:not(.active):active { background:rgba(255,255,255,0.05); }
+
+        /* SHARED LEDGER SCREEN */
+        #sharedScreen { display:none; flex-direction:column; gap:20px; padding:20px; max-width:900px; margin:0 auto; padding-bottom:40px; }
+        #sharedScreen.active { display:flex; }
+
+        /* INVITE CARD */
+        /* INVITE SEARCH MODAL */
+        .invite-search-overlay { position:fixed; inset:0; z-index:600; display:none; align-items:flex-end; justify-content:center; background:rgba(0,0,0,0.75); backdrop-filter:blur(10px); }
+        .invite-search-overlay.active { display:flex; }
+        .invite-search-box { width:100%; max-width:500px; background:#0d1425; border:1px solid var(--glass-border); border-radius:24px 24px 0 0; padding:20px; max-height:75vh; display:flex; flex-direction:column; }
+        .invite-search-title { font-family:'Playfair Display',serif; font-size:18px; color:var(--gold); margin-bottom:14px; text-align:center; }
+        .invite-search-results { overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:8px; margin-top:12px; }
+        .invite-user-row { display:flex; align-items:center; gap:12px; padding:12px; background:var(--glass); border:1px solid var(--glass-border); border-radius:14px; cursor:pointer; transition:all 0.2s; }
+        .invite-user-row:active { transform:scale(0.97); background:var(--gold-dim); }
+        .invite-pending-card { display:flex; align-items:center; gap:12px; padding:14px; background:var(--glass); border:1px solid var(--gold-border); border-radius:14px; margin-bottom:10px; }
+        .invite-pending-name { font-size:14px; font-weight:600; flex:1; }
+        .invite-pending-sub { font-size:11px; color:var(--text-dim); }
+        .btn-accept { background:rgba(52,211,153,0.15); color:var(--green); border:1px solid rgba(52,211,153,0.3); padding:8px 14px; border-radius:10px; font-family:'Outfit',sans-serif; font-size:12px; font-weight:700; cursor:pointer; }
+        .btn-decline { background:rgba(248,113,113,0.1); color:var(--red); border:1px solid rgba(248,113,113,0.3); padding:8px 14px; border-radius:10px; font-family:'Outfit',sans-serif; font-size:12px; font-weight:700; cursor:pointer; }
+        .invite-card {
+            padding:24px; text-align:center;
+            background:rgba(255,255,255,0.04);
+            backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur);
+            border:1px solid var(--glass-border); border-radius:var(--radius);
+        }
+        .invite-title { font-family:'Playfair Display',serif; font-size:20px; color:var(--gold); margin-bottom:8px; }
+        .invite-desc { color:var(--text-dim); font-size:13px; margin-bottom:20px; line-height:1.6; }
+        .invite-code-box {
+            display:flex; align-items:center; justify-content:center; gap:12px;
+            background:rgba(212,175,55,0.08); border:1.5px solid var(--gold-border);
+            border-radius:14px; padding:14px 20px; margin-bottom:16px;
+        }
+        .invite-code { font-family:monospace; font-size:28px; font-weight:900; color:var(--gold); letter-spacing:6px; }
+        .btn-copy-code {
+            background:rgba(212,175,55,0.15); border:1px solid var(--gold-border);
+            color:var(--gold); padding:8px 14px; border-radius:10px;
+            font-family:'Outfit',sans-serif; font-size:12px; font-weight:700; cursor:pointer;
+        }
+        .join-input-wrap { display:flex; gap:8px; margin-top:10px; }
+        .join-input {
+            flex:1; background:rgba(255,255,255,0.06); border:1px solid var(--glass-border);
+            border-radius:12px; padding:12px 16px; color:var(--text);
+            font-family:'Outfit',sans-serif; font-size:15px; text-align:center;
+            letter-spacing:3px; text-transform:uppercase;
+        }
+        .join-input:focus { outline:none; border-color:var(--gold); }
+        .btn-join {
+            background:linear-gradient(135deg,#D4AF37,#F0CC5A); color:#050505;
+            border:none; padding:12px 20px; border-radius:12px;
+            font-family:'Outfit',sans-serif; font-weight:700; font-size:14px; cursor:pointer;
+        }
+
+        /* SHARED MEMBERS */
+        .members-row {
+            display:flex; align-items:center; gap:10px; padding:14px 18px;
+            background:rgba(255,255,255,0.04); border:1px solid var(--glass-border);
+            border-radius:var(--radius); backdrop-filter:var(--blur);
+        }
+        .member-chip {
+            display:flex; align-items:center; gap:8px;
+            background:rgba(212,175,55,0.1); border:1px solid var(--gold-border);
+            border-radius:30px; padding:6px 14px;
+        }
+        .member-avatar-sm { width:24px; height:24px; border-radius:50%; object-fit:cover; }
+        .member-name-sm { font-size:12px; font-weight:600; color:var(--gold); }
+        .member-you { font-size:10px; color:var(--text-dim); margin-left:2px; }
+
+        /* SHARED ENTRY ROW BADGE */
+        .added-by-badge {
+            font-size:10px; color:var(--gold); opacity:0.8;
+            background:rgba(212,175,55,0.1); border:1px solid var(--gold-border);
+            padding:2px 8px; border-radius:6px; font-weight:600;
+        }
+
+    </style>
+</head>
+<body>
+<!-- OFFLINE BANNER -->
+<div id="extraOrb"></div>
+<div id="offlineBanner">📶 You're offline — changes will sync when reconnected</div>
+
+
+<!-- SPLASH SCREEN -->
+<div id="splashScreen">
+    <div class="splash-logo">₹</div>
+    <div class="splash-sub">Elite Ledger</div>
+    <div class="splash-ring"></div>
+    <div class="splash-tagline">Premium Finance Tracker</div>
+</div>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+    <div class="login-logo">THE LEDGER</div>
+    <div class="login-sub">Premium Finance Tracker</div>
+    <div class="login-card glass-gold">
+        <div class="login-title">Welcome Back</div>
+        <div class="login-desc">Sign in to access your personal ledger. Your data is securely stored and synced across all devices.</div>
+        <button class="btn-google" onclick="signInWithGoogle()">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+            Continue with Google
+        </button>
+
+        <div class="divider">
+            <div class="divider-line"></div>
+            <div class="divider-text">or</div>
+            <div class="divider-line"></div>
+        </div>
+
+        <button class="btn-email" onclick="toggleEmailInput()">
+            ✉️ Continue with Email
+        </button>
+
+        <div class="email-input-wrap" id="emailInputWrap">
+            <input type="email" class="email-input" id="magicEmailInput" placeholder="your@email.com" inputmode="email" autocomplete="email">
+            <button class="btn-send-link" onclick="sendMagicLink()">✨ Send Magic Link</button>
+        </div>
+
+        <div class="login-note">🔒 Your data is private and encrypted. Only you can see your transactions.</div>
+    </div>
+</div>
+
+
+<!-- EMAIL SENT SCREEN -->
+<div id="emailSentScreen">
+    <div class="email-sent-card glass-gold">
+        <div class="email-sent-icon">📬</div>
+        <div class="email-sent-title">Check Your Email!</div>
+        <div class="email-sent-desc">
+            We sent a magic sign-in link to<br>
+            <span class="email-sent-addr" id="sentToEmail"></span><br><br>
+            Tap the link in your email to sign in instantly. No password needed!
+        </div>
+        <div style="font-size:12px;color:var(--text-dim);background:var(--glass);padding:12px;border-radius:12px;margin-bottom:16px">
+            💡 Check your spam folder if you don't see it within a minute
+        </div>
+        <button class="btn-back-login" onclick="backToLogin()">← Try different method</button>
+    </div>
+</div>
+
+<!-- SUSPENDED -->
+<div id="suspendedScreen">
+    <div class="suspended-icon">🚫</div>
+    <div class="suspended-title">Account Suspended</div>
+    <div class="suspended-desc">Your account has been suspended.<br>If you think this is a mistake,<br>please contact support.</div>
+    <a class="suspended-tg" href="https://t.me/iampenguin914" target="_blank">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L8.32 14.617l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.828.942z"/></svg>
+        Contact @iampenguin914
+    </a>
+</div>
+
+<!-- PAYWALL -->
+<div id="paywallScreen">
+    <div class="paywall-card glass-gold">
+        <div class="paywall-crown">👑</div>
+        <div class="paywall-title">Go Premium</div>
+        <div class="paywall-desc">You've used all 10 free entries. Upgrade once to unlock the full Elite Ledger experience forever.</div>
+        <div class="paywall-features">
+            <div class="paywall-feature"><span class="check">✓</span> Unlimited transactions</div>
+            <div class="paywall-feature"><span class="check">✓</span> PDF export & reports</div>
+            <div class="paywall-feature"><span class="check">✓</span> All categories & filters</div>
+            <div class="paywall-feature"><span class="check">✓</span> Cloud sync across devices</div>
+            <div class="paywall-feature"><span class="check">✓</span> Lifetime access — pay once</div>
+        </div>
+        <div class="paywall-price">₹1</div>
+        <div class="paywall-price-sub">One time payment · Lifetime access</div>
+        <button class="btn-premium" onclick="payAndUnlock()">⚡ Pay ₹1 via UPI & Unlock</button>
+        <div class="paywall-note">Pay via UPI to <strong style="color:var(--gold)">Musaib4950e@ybl</strong> then tap below to contact us on Telegram. We'll activate within minutes.</div>
+        <a href="https://t.me/Iampenguin914" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px;border-radius:14px;background:#229ED9;color:white;font-family:Outfit,sans-serif;font-weight:700;font-size:14px;text-decoration:none;margin-top:12px;box-shadow:0 6px 20px rgba(34,158,217,0.35)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.012 9.486c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.48 14.672l-2.95-.924c-.642-.204-.654-.642.136-.953l11.527-4.446c.535-.194 1.003.131.37.899z"/></svg>
+            Contact on Telegram
+        </a>
+        <br>
+        <button class="btn-glass" style="width:100%;margin-top:8px;padding:12px;border-radius:var(--radius-sm)" onclick="hidepaywall()">← Back to app</button>
+    </div>
+</div>
+
+<!-- APP -->
+<div id="appScreen">
+    <header>
+        <div class="header-inner">
+            <div class="header-left">
+                <img id="userAvatar" class="user-avatar" src="" alt="" style="display:none">
+                <div>
+                    <div class="header-title">THE LEDGER</div>
+                    <div style="display:flex;align-items:center;gap:6px">
+                        <div class="user-name" id="userName"></div>
+                        <div class="premium-badge" id="premiumBadge">👑 PRO</div>
+                    </div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <div class="pdf-locked" id="pdfBtnWrap">
+                    <button class="btn btn-icon" onclick="handlePDFClick()" title="Export PDF">📄</button>
+                    <span class="lock-badge" id="pdfLock">🔒</span>
+                </div>
+                <button class="btn btn-gold" onclick="handleAddEntry()">＋ Add</button>
+                <button class="btn btn-icon" onclick="openRooms()" title="Rooms" id="chatIconBtn">💬</button>
+                <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Toggle theme">🌙</button>
+                <button class="theme-toggle" onclick="SFX.toggle(this)" id="sfxBtn" title="Toggle sounds">🔊</button>
+                <button class="btn btn-icon" onclick="signOut()" title="Sign Out">🚪</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- LEDGER TOGGLE -->
+    <div class="ledger-toggle-wrap" style="margin-top:16px">
+        <button class="ledger-tab active" id="tabPersonal" onclick="switchLedger('personal')">👤 Personal</button>
+        <button class="ledger-tab" id="tabShared" onclick="switchLedger('shared')">🤝 Shared</button>
+    </div>
+
+    <main id="personalScreen">
+        <!-- Free tier limit banner -->
+        <div class="limit-banner glass" id="limitBanner" style="display:none">
+            <div style="flex:1">
+                <div class="limit-text">Free plan: <strong id="limitText">0/10 entries used</strong></div>
+                <div class="limit-bar-wrap">
+                    <div class="limit-bar-fill" id="limitBarFill" style="width:0%"></div>
+                </div>
+            </div>
+            <button class="btn-gold btn" style="padding:8px 14px;font-size:12px" onclick="showPaywall()">👑 Upgrade</button>
+        </div>
+
+        <!-- ANNOUNCEMENT BANNER -->
+        <div class="announcement-banner" id="announcementBanner">
+            <div class="announcement-emoji" id="announcementEmoji">📢</div>
+            <div class="announcement-content">
+                <div class="announcement-label">📣 From Elite Ledger</div>
+                <div class="announcement-text" id="announcementText"></div>
+            </div>
+            <button class="announcement-dismiss" onclick="dismissAnnouncement()">✕</button>
+        </div>
+
+        <div class="notif-banner" id="notifBanner" style="display:none">
+            <div class="notif-banner-text">🔔 Enable notifications to get alerted when someone messages you</div>
+            <button class="btn-notif" onclick="requestNotifPermission()">Enable</button>
+            <button style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:16px;padding:0 4px" onclick="dismissNotifBanner()">✕</button>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-card glass-gold">
+                <div class="stat-label">Net Surplus</div>
+                <div class="stat-value" id="netSurplus">₹0</div>
+            </div>
+            <div class="stat-card glass">
+                <div class="stat-label">Credits</div>
+                <div class="stat-value" style="color:var(--green)" id="totalCredits">₹0</div>
+            </div>
+            <div class="stat-card glass">
+                <div class="stat-label">Expenses</div>
+                <div class="stat-value" style="color:var(--red)" id="totalExpenses">₹0</div>
+            </div>
+        </div>
+
+        <div class="chart-card glass-gold">
+            <canvas id="analyticsChart"></canvas>
+        </div>
+
+        <div class="filter-card glass">
+            <div class="search-wrap">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="search" placeholder="Search transactions...">
+            </div>
+            <div class="filter-row">
+                <input type="date" id="startDate">
+                <input type="date" id="endDate">
+            </div>
+            <div class="pills-scroll" id="categoryFilter"></div>
+            <div style="display:flex;gap:8px;margin-top:10px;">
+                <button class="btn btn-glass" style="flex:1" onclick="applyFilter()">Filter</button>
+                <button class="btn btn-glass" style="flex:1" onclick="resetFilter()">Reset</button>
+            </div>
+        </div>
+
+        <div class="entries-card glass">
+            <div class="entries-header">
+                <div class="entries-title">Transactions</div>
+                <div class="entry-count" id="entryCount">0 entries</div>
+            </div>
+            <div id="loadingState">
+                <div class="spinner"></div>
+                <p>Loading your data...</p>
+            </div>
+            <div id="entriesList"></div>
+            <div id="emptyState" class="empty-state" style="display:none">
+                <div class="emoji">💸</div>
+                <h3>No entries yet</h3>
+                <p>Tap <strong>+ Add</strong> to record your first transaction</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- SHARED LEDGER SCREEN -->
+    <div id="sharedScreen">
+        <!-- No ledger yet -->
+        <div id="sharedSetup">
+            <div class="invite-card">
+                <div style="font-size:48px;margin-bottom:12px">🤝</div>
+                <div class="invite-title">Shared Ledger</div>
+                <div class="invite-desc">Track expenses together with a partner, roommate, or family member.</div>
+
+                <!-- YOUR UID BOX -->
+                <div style="margin-bottom:18px">
+                    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold);opacity:0.7;margin-bottom:8px">Your Invite ID</div>
+                    <div style="display:flex;align-items:center;gap:8px;background:rgba(212,175,55,0.08);border:1.5px solid var(--gold-border);border-radius:14px;padding:12px 14px">
+                        <div id="myUIDDisplay" style="flex:1;font-family:monospace;font-size:12px;color:var(--gold);word-break:break-all;line-height:1.5"></div>
+                        <button onclick="copyMyUID()" style="background:rgba(212,175,55,0.15);border:1px solid var(--gold-border);color:var(--gold);padding:8px 12px;border-radius:10px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0">📋 Copy</button>
+                    </div>
+                    <div style="font-size:11px;color:var(--text-dim);margin-top:6px;line-height:1.5">Share this ID with your partner so they can send you an invite</div>
+                </div>
+
+                <!-- SEND INVITE BY UID -->
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold);opacity:0.7;margin-bottom:8px">Send Invite to Partner</div>
+                <div style="display:flex;gap:8px">
+                    <input id="partnerUIDInput" placeholder="Paste partner's Invite ID..." style="flex:1;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,0.06);border:1.5px solid var(--glass-border);color:var(--text);font-family:'Outfit',sans-serif;font-size:13px;font-family:monospace" autocomplete="off" onkeydown="if(event.key==='Enter')sendInviteByUID()">
+                    <button onclick="sendInviteByUID()" style="background:linear-gradient(135deg,#D4AF37,#F0CC5A);color:#050505;border:none;padding:12px 16px;border-radius:12px;font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap">✉️ Send</button>
+                </div>
+            </div>
+            <!-- Pending incoming invites -->
+            <div id="pendingInvitesSection" style="display:none">
+                <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold);opacity:0.7;margin-bottom:10px">Pending Invites</div>
+                <div id="pendingInvitesList"></div>
+            </div>
+        </div>
+
+        <!-- Active shared ledger -->
+        <div id="sharedActive" style="display:none">
+            <div class="members-row">
+                <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);opacity:0.7;margin-right:4px">Members</div>
+                <div id="membersList" style="display:flex;gap:8px;flex-wrap:wrap;flex:1"></div>
+                <button onclick="leaveSharedLedger()" style="background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.3);color:var(--red);padding:6px 12px;border-radius:10px;font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;cursor:pointer">Leave</button>
+            </div>
+
+            <div class="entries-card glass">
+                <div class="entries-header">
+                    <div class="entries-title">Shared Transactions</div>
+                    <div class="entry-count" id="sharedEntryCount">0 entries</div>
+                </div>
+                <div id="sharedLoadingState" style="display:none">
+                    <div class="spinner" style="margin:30px auto"></div>
+                </div>
+                <div id="sharedEntriesList"></div>
+                <div id="sharedEmptyState" class="empty-state" style="display:none">
+                    <div class="emoji">🤝</div>
+                    <h3>No shared entries yet</h3>
+                    <p>Tap <strong>+ Add</strong> to record a shared transaction</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="upi-bar glass-gold">
+        <div>
+            <div class="upi-label">💳 Pay via UPI</div>
+            <div class="upi-id">Musaib4950e@ybl</div>
+        </div>
+        <button class="btn-upi" onclick="openUPI()">⚡ Pay Now</button>
+    </div>
+    <footer>© 2026 Elite Ledger · Crafted with precision</footer>
+</div>
+
+<!-- ADD/EDIT MODAL -->
+<div class="modal-overlay" id="addModal">
+    <div class="modal-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+            <div class="sheet-title" id="modalTitle">New Entry</div>
+            <button class="sheet-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="sheet-body">
+            <div>
+                <label class="form-label">Type</label>
+                <div class="type-toggle">
+                    <button class="type-btn active-expense" id="typeExpense" onclick="setType('expense')">💸 Expense</button>
+                    <button class="type-btn" id="typeCredit" onclick="setType('credit')">💰 Credit</button>
+                </div>
+            </div>
+            <div>
+                <label class="form-label">Title</label>
+                <input type="text" id="entryTitle" placeholder="e.g. Grocery Shopping">
+            </div>
+            <div>
+                <label class="form-label">Amount (₹)</label>
+                <input type="number" id="entryAmount" placeholder="0.00" step="0.01" inputmode="decimal">
+            </div>
+            <div>
+                <label class="form-label">Category</label>
+                <select id="entryCategory">
+                    <option value="General">📦 General</option>
+                    <option value="Food">🍔 Food</option>
+                    <option value="Transport">🚗 Transport</option>
+                    <option value="Shopping">🛍️ Shopping</option>
+                    <option value="Bills">💡 Bills</option>
+                    <option value="Health">🏥 Health</option>
+                    <option value="Salary">💼 Salary</option>
+                    <option value="Entertainment">🎬 Entertainment</option>
+                    <option value="Education">📚 Education</option>
+                    <option value="Other">🔖 Other</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Notes (optional)</label>
+                <input type="text" id="entryNotes" placeholder="Add a note...">
+            </div>
+            <div>
+                <label class="form-label">Date</label>
+                <input type="date" id="entryDate">
+            </div>
+        </div>
+        <div class="sheet-footer">
+            <button class="btn btn-glass" onclick="closeModal()">Cancel</button>
+            <button class="btn btn-gold" onclick="saveEntry()">Save Entry</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut as fbSignOut, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, getDocs, doc, deleteDoc, updateDoc, setDoc, getDoc, query, orderBy, onSnapshot, serverTimestamp, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyACCRrE9iKMmOu0uJtFMIgA836u0wJnqLQ",
+    authDomain: "elite-ledger.firebaseapp.com",
+    projectId: "elite-ledger",
+    storageBucket: "elite-ledger.firebasestorage.app",
+    messagingSenderId: "58789387654",
+    appId: "1:58789387654:web:c644a6fe9e5862298f2007"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+// Firebase v10 correct way to enable offline persistence
+const db = initializeFirestore(app, {
+    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+});
+const provider = new GoogleAuthProvider();
+
+// Online/offline banner
+window.addEventListener('online',  () => { document.getElementById('offlineBanner').style.display = 'none'; toast('✅ Back online — syncing...'); });
+window.addEventListener('offline', () => { document.getElementById('offlineBanner').style.display = 'flex'; });
+
+const FREE_LIMIT = 10;
+let currentUser = null;
+let isPremium = false;
+let data = [];
+let chart = null;
+let editId = null;
+let currentType = 'expense';
+let activeCategory = 'All';
+let currentLedger = 'personal'; // 'personal' or 'shared'
+let sharedLedgerId = null;
+let sharedData = [];
+let sharedUnsubscribe = null;
+
+const CATEGORIES = ['All','General','Food','Transport','Shopping','Bills','Health','Salary','Entertainment','Education','Other'];
+const CAT_COLORS = { General:'#94a3b8',Food:'#fb923c',Transport:'#60a5fa',Shopping:'#f472b6',Bills:'#facc15',Health:'#34d399',Salary:'#D4AF37',Entertainment:'#a78bfa',Education:'#38bdf8',Other:'#9ca3af' };
+const CAT_EMOJI = { General:'📦',Food:'🍔',Transport:'🚗',Shopping:'🛍️',Bills:'💡',Health:'🏥',Salary:'💼',Entertainment:'🎬',Education:'📚',Other:'🔖' };
+
+// Auth
+onAuthStateChanged(auth, async user => {
+    if (user) {
+        currentUser = user;
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('appScreen').style.display = 'block';
+        const avatar = document.getElementById('userAvatar');
+        if (user.photoURL) { avatar.src = user.photoURL; avatar.style.display = 'block'; }
+        document.getElementById('userName').textContent = user.displayName?.split(' ')[0] || '';
+
+        // Always upsert user profile so name/email/photoURL stay current
+        const userRef = doc(db, 'users', user.uid);
+        await setDoc(userRef, {
+            uid: user.uid,
+            email: user.email,
+            name: user.displayName,
+            photoURL: user.photoURL || null,
+            updatedAt: Date.now()
+        }, { merge: true });
+
+        // Also write to users_registry so invite search can find all users
+        await setDoc(doc(db, 'users_registry', user.uid), {
+            uid: user.uid,
+            email: user.email,
+            name: user.displayName,
+            photoURL: user.photoURL || null,
+            updatedAt: Date.now()
+        }, { merge: true });
+
+        let userSnap = await getDoc(userRef);
+        if (!userSnap.data()?.createdAt) {
+            await setDoc(userRef, { isPremium: false, createdAt: Date.now() }, { merge: true });
+        }
+
+        // Always fetch fresh to catch suspended/premium changes
+        userSnap = await getDoc(userRef);
+        const userData = userSnap.data();
+
+        // Check if suspended
+        if (userData?.suspended === true) {
+            await fbSignOut(auth);
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('appScreen').style.display = 'none';
+            document.getElementById('suspendedScreen').style.display = 'flex';
+            return;
+        }
+
+        // Check premium status
+        isPremium = userData?.isPremium === true;
+        updatePremiumUI();
+        // Populate invite ID as soon as user is known
+        const uidEl = document.getElementById('myUIDDisplay');
+        if (uidEl) uidEl.textContent = user.uid;
+        await loadData();
+        initUI();
+    } else {
+        currentUser = null;
+        document.getElementById('loginScreen').style.display = 'flex';
+        document.getElementById('appScreen').style.display = 'none';
+        document.getElementById('paywallScreen').style.display = 'none';
+    }
+});
+
+function updatePremiumUI() {
+    const badge = document.getElementById('premiumBadge');
+    const pdfLock = document.getElementById('pdfLock');
+    const limitBanner = document.getElementById('limitBanner');
+    if (isPremium) {
+        badge.style.display = 'inline-block';
+        pdfLock.style.display = 'none';
+        limitBanner.style.display = 'none';
+    } else {
+        badge.style.display = 'none';
+        pdfLock.style.display = 'inline-block';
+        limitBanner.style.display = 'flex';
+    }
+}
+
+function updateLimitBar() {
+    if (isPremium) return;
+    const used = data.length;
+    const pct = Math.min((used / FREE_LIMIT) * 100, 100);
+    document.getElementById('limitText').textContent = `${used}/${FREE_LIMIT} entries used`;
+    document.getElementById('limitBarFill').style.width = pct + '%';
+}
+
+window.signInWithGoogle = async () => {
+    try { await signInWithPopup(auth, provider); }
+    catch(e) { toast('❌ Sign in failed. Try again.'); }
+};
+
+// Magic link email auth
+window.toggleEmailInput = () => {
+    const wrap = document.getElementById('emailInputWrap');
+    wrap.classList.toggle('active');
+    if (wrap.classList.contains('active')) {
+        setTimeout(() => document.getElementById('magicEmailInput').focus(), 100);
+    }
+};
+
+window.sendMagicLink = async () => {
+    const email = document.getElementById('magicEmailInput').value.trim();
+    if (!email || !email.includes('@')) { toast('❌ Enter a valid email address'); return; }
+
+    const actionCodeSettings = {
+        url: 'https://elite-ledger.vercel.app/',
+        handleCodeInApp: true
+    };
+
+    try {
+        await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+        localStorage.setItem('el_email_signin', email);
+        document.getElementById('sentToEmail').textContent = email;
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('emailSentScreen').style.display = 'flex';
+        toast('📬 Magic link sent!');
+    } catch(e) {
+        console.error(e);
+        if (e.code === 'auth/invalid-email') toast('❌ Invalid email address');
+        else if (e.code === 'auth/too-many-requests') toast('❌ Too many attempts. Try later.');
+        else if (e.code === 'auth/quota-exceeded') toast('❌ Too many attempts today. Try again tomorrow.');
+        else toast('❌ Failed to send link. Try again.');
+    }
+};
+
+window.backToLogin = () => {
+    document.getElementById('emailSentScreen').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+};
+
+// Check if user arrived via magic link
+async function checkMagicLink() {
+    if (!isSignInWithEmailLink(auth, window.location.href)) return;
+    let email = localStorage.getItem('el_email_signin');
+    if (!email) {
+        email = await showEmailConfirmModal();
+        if (!email) return;
+    }
+    try {
+        await signInWithEmailLink(auth, email, window.location.href);
+        localStorage.removeItem('el_email_signin');
+        // Clean URL
+        window.history.replaceState({}, document.title, '/');
+        toast('✅ Signed in successfully!');
+    } catch(e) {
+        console.error(e);
+        toast('❌ Invalid or expired link. Please try again.');
+        document.getElementById('loginScreen').style.display = 'flex';
+    }
+}
+
+// ─────────────────────────────────────
+// LEDGER TOGGLE
+// ─────────────────────────────────────
+window.switchLedger = (tab) => {
+    currentLedger = tab;
+    document.getElementById('tabPersonal').className = 'ledger-tab' + (tab==='personal'?' active':'');
+    document.getElementById('tabShared').className = 'ledger-tab' + (tab==='shared'?' active':'');
+    document.getElementById('personalScreen').style.display = tab==='personal' ? 'flex' : 'none';
+    document.getElementById('sharedScreen').className = tab==='shared' ? 'active' : '';
+    if (tab==='shared') loadSharedLedger();
+};
+
+// ─────────────────────────────────────
+// SHARED LEDGER
+// ─────────────────────────────────────
+function generateCode() {
+    return Math.random().toString(36).slice(2,8).toUpperCase();
+}
+
+async function loadSharedLedger() {
+    if (!currentUser) return;
+    const userRef = doc(db,'users',currentUser.uid);
+    const snap = await getDoc(userRef);
+    const userData = snap.data();
+
+    // Always listen for pending invites so they show up even when already in a ledger
+    listenForInvites();
+
+    if (userData?.sharedLedgerId) {
+        sharedLedgerId = userData.sharedLedgerId;
+        await showSharedActive();
+    } else {
+        // Check if someone accepted an invite we sent
+        try {
+            const acceptedQ = query(collection(db,'sharedInvites'),
+                where('fromUid','==',currentUser.uid), where('status','==','accepted'));
+            const acceptedSnap = await getDocs(acceptedQ);
+            if (!acceptedSnap.empty) {
+                const inv = acceptedSnap.docs[0].data();
+                const lid = inv.ledgerId;
+                if (lid) {
+                    await updateDoc(userRef, { sharedLedgerId: lid });
+                    sharedLedgerId = lid;
+                    await showSharedActive();
+                    return;
+                }
+            }
+        } catch(e) { /* continue to setup */ }
+
+        document.getElementById('sharedSetup').style.display = 'block';
+        document.getElementById('sharedActive').style.display = 'none';
+        // Show user's own UID for sharing
+        if (document.getElementById('myUIDDisplay')) {
+            document.getElementById('myUIDDisplay').textContent = currentUser.uid;
+        }
+    }
+}
+
+let inviteUnsub = null;
+function listenForInvites() {
+    if (inviteUnsub) inviteUnsub();
+    const q = query(collection(db,'sharedInvites'), where('toUid','==',currentUser.uid), where('status','==','pending'));
+    inviteUnsub = onSnapshot(q, snap => {
+        const section = document.getElementById('pendingInvitesSection');
+        const list = document.getElementById('pendingInvitesList');
+        if (snap.empty) { section.style.display = 'none'; return; }
+        section.style.display = 'block';
+        list.innerHTML = snap.docs.map(d => {
+            const inv = d.data();
+            return `<div class="invite-pending-card">
+                <div style="font-size:32px">${inv.fromPhoto ? `<img src="${inv.fromPhoto}" style="width:40px;height:40px;border-radius:50%;object-fit:cover">` : '👤'}</div>
+                <div style="flex:1;min-width:0">
+                    <div class="invite-pending-name">${inv.fromName || 'Someone'}</div>
+                    <div class="invite-pending-sub">wants to share a ledger with you</div>
+                </div>
+                <button class="btn-accept" onclick="acceptInvite('${d.id}','${inv.fromUid}')">✅ Accept</button>
+                <button class="btn-decline" onclick="declineInvite('${d.id}')">❌</button>
+            </div>`;
+        }).join('');
+    });
+}
+
+async function showSharedActive() {
+    document.getElementById('sharedSetup').style.display = 'none';
+    document.getElementById('sharedActive').style.display = 'block';
+    document.getElementById('sharedLoadingState').style.display = 'block';
+
+    // Load ledger members
+    const ledgerSnap = await getDoc(doc(db,'sharedLedgers',sharedLedgerId));
+    if (!ledgerSnap.exists()) {
+        // Ledger deleted, clear from user
+        await updateDoc(doc(db,'users',currentUser.uid), { sharedLedgerId: null });
+        sharedLedgerId = null;
+        document.getElementById('sharedSetup').style.display = 'block';
+        document.getElementById('sharedActive').style.display = 'none';
+        return;
+    }
+    const ledgerData = ledgerSnap.data();
+    const memberIds = [...new Set(ledgerData.members || [])]; // deduplicate
+
+    // Render members
+    const membersList = document.getElementById('membersList');
+    membersList.innerHTML = '';
+    for (const uid of memberIds) {
+        const mSnap = await getDoc(doc(db,'users',uid));
+        const m = mSnap.exists() ? mSnap.data() : {};
+        const isYou = uid === currentUser.uid;
+        membersList.innerHTML += `
+            <div class="member-chip">
+                ${m.photoURL ? `<img class="member-avatar-sm" src="${m.photoURL}">` : '<span>👤</span>'}
+                <span class="member-name-sm">${m.name?.split(' ')[0] || 'User'}</span>
+                ${isYou ? '<span class="member-you">(you)</span>' : ''}
+            </div>`;
+    }
+
+    // Realtime listener for shared entries
+    if (sharedUnsubscribe) sharedUnsubscribe();
+    const q = query(collection(db,'sharedLedgers',sharedLedgerId,'entries'), orderBy('date','desc'));
+    sharedUnsubscribe = onSnapshot(q, (snap) => {
+        sharedData = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+        document.getElementById('sharedLoadingState').style.display = 'none';
+        renderShared();
+    });
+}
+
+function renderShared() {
+    const list = document.getElementById('sharedEntriesList');
+    const empty = document.getElementById('sharedEmptyState');
+    document.getElementById('sharedEntryCount').textContent = sharedData.length + ' entries';
+    if (!sharedData.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+    list.innerHTML = sharedData.map(e => `
+        <div class="entry-row">
+            <div class="entry-icon ${e.type}">
+                ${CAT_EMOJI[e.category]||'📦'}
+            </div>
+            <div class="entry-info">
+                <div class="entry-title">${e.title}</div>
+                <div class="entry-meta">
+                    <span>${e.date}</span>
+                    <span class="added-by-badge">by ${e.addedByName||'Unknown'}</span>
+                </div>
+            </div>
+            <div class="entry-right">
+                <div class="entry-amount ${e.type}">${e.type==='expense'?'-':'+'} ₹${e.amount.toFixed(0)}</div>
+            </div>
+            ${e.addedBy===currentUser.uid ? `<div class="entry-actions"><button class="btn btn-danger" onclick="deleteSharedEntry('${e.id}')">🗑️</button></div>` : ''}
+        </div>`).join('');
+}
+
+// Invite search modal
+let allInviteUsers = [];
+window.openInviteSearch = async () => {
+    document.getElementById('inviteSearchOverlay').classList.add('active');
+    document.getElementById('inviteSearchInput').value = '';
+    document.getElementById('inviteSearchResults').innerHTML = '<div style="color:var(--text-dim);font-size:13px;text-align:center;padding:20px">Loading users...</div>';
+    try {
+        const snap = await getDocs(collection(db,'users_registry'));
+        allInviteUsers = snap.docs.map(d => ({ uid: d.id, ...d.data() })).filter(u => u.uid !== currentUser.uid);
+        document.getElementById('inviteSearchResults').innerHTML = '<div style="color:var(--text-dim);font-size:13px;text-align:center;padding:20px">Type to search users</div>';
+    } catch(e) {
+        document.getElementById('inviteSearchResults').innerHTML = '<div style="color:var(--red);font-size:13px;text-align:center;padding:20px">❌ Error loading users</div>';
+    }
+};
+
+window.closeInviteSearch = () => {
+    document.getElementById('inviteSearchOverlay').classList.remove('active');
+};
+
+window.searchInviteUsers = () => {
+    const q = document.getElementById('inviteSearchInput').value.toLowerCase();
+    const res = document.getElementById('inviteSearchResults');
+    if (!q) { res.innerHTML = '<div style="color:var(--text-dim);font-size:13px;text-align:center;padding:20px">Type to search users</div>'; return; }
+    const matches = allInviteUsers.filter(u => (u.name||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q));
+    if (!matches.length) { res.innerHTML = '<div style="color:var(--text-dim);font-size:13px;text-align:center;padding:20px">No users found</div>'; return; }
+    res.innerHTML = matches.slice(0,10).map(u => `
+        <div class="invite-user-row" onclick="sendInvite('${u.uid}','${(u.name||'User').replace(/'/g,"\\'")}')">
+            <div class="dm-avatar">${u.photoURL ? `<img src="${u.photoURL}">` : '👤'}</div>
+            <div style="flex:1;min-width:0">
+                <div style="font-size:14px;font-weight:600">${u.name||'Unknown'}</div>
+                <div style="font-size:12px;color:var(--text-dim)">${u.email||''}</div>
+            </div>
+            <div style="font-size:12px;color:var(--gold);font-weight:600">Invite →</div>
+        </div>`).join('');
+};
+
+window.sendInvite = async (toUid, toName) => {
+    closeInviteSearch();
+    try {
+        // Check if invite already pending
+        const existing = await getDocs(query(collection(db,'sharedInvites'),
+            where('fromUid','==',currentUser.uid), where('toUid','==',toUid), where('status','==','pending')));
+        if (!existing.empty) { toast('⏳ Invite already sent!'); return; }
+
+        await addDoc(collection(db,'sharedInvites'), {
+            fromUid: currentUser.uid,
+            fromName: currentUser.displayName || 'Someone',
+            fromPhoto: currentUser.photoURL || null,
+            toUid,
+            status: 'pending',
+            createdAt: serverTimestamp()
+        });
+        toast(`✅ Invite sent to ${toName}!`);
+    } catch(e) {
+        console.error(e);
+        toast('❌ Failed to send invite');
+    }
+};
+
+window.acceptInvite = async (inviteId, fromUid) => {
+    try {
+        const ledgerId = [currentUser.uid, fromUid].sort().join('_');
+        const ledgerRef = doc(db,'sharedLedgers',ledgerId);
+
+        // Step 1: Read ledger
+        let ledgerSnap;
+        try {
+            ledgerSnap = await getDoc(ledgerRef);
+        } catch(e) {
+            console.error('Step 1 failed - getDoc ledger:', e);
+            toast('❌ Accept failed: cannot read ledger (' + e.code + ')');
+            return;
+        }
+
+        // Step 2: Create or update ledger with deduplicated members
+        const existingMembers = ledgerSnap.exists() ? (ledgerSnap.data().members || []) : [];
+        const newMembers = [...new Set([...existingMembers, currentUser.uid, fromUid])];
+        const ledgerPayload = ledgerSnap.exists()
+            ? { members: newMembers }
+            : { members: newMembers, createdAt: Date.now() };
+        try {
+            await setDoc(ledgerRef, ledgerPayload, { merge: true });
+        } catch(e) {
+            console.error('Step 2 failed - setDoc ledger:', e);
+            toast('❌ Accept failed: cannot create ledger (' + e.code + ')');
+            return;
+        }
+
+        // Step 3: Update own user doc
+        try {
+            await updateDoc(doc(db,'users',currentUser.uid), { sharedLedgerId: ledgerId });
+        } catch(e) {
+            console.error('Step 3 failed - updateDoc own user:', e);
+            toast('❌ Accept failed: cannot update your profile (' + e.code + ')');
+            return;
+        }
+
+        // Step 3b: Update sender's user doc too (so both sides are linked)
+        try {
+            await updateDoc(doc(db,'users',fromUid), { sharedLedgerId: ledgerId });
+        } catch(e) {
+            // Non-fatal if rules don't allow it, continue
+            console.warn('Step 3b - could not update sender profile:', e.code);
+        }
+
+        // Step 4: Mark invite accepted
+        try {
+            await updateDoc(doc(db,'sharedInvites',inviteId), { status: 'accepted', ledgerId: ledgerId });
+        } catch(e) {
+            console.error('Step 4 failed - updateDoc invite:', e);
+            toast('❌ Accept failed: cannot update invite (' + e.code + ')');
+            return;
+        }
+
+        // Step 5: Decline all other pending invites to avoid conflicts
+        try {
+            const otherInvites = await getDocs(query(collection(db,'sharedInvites'),
+                where('toUid','==',currentUser.uid), where('status','==','pending')));
+            const declines = otherInvites.docs
+                .filter(d => d.id !== inviteId)
+                .map(d => updateDoc(doc(db,'sharedInvites',d.id), { status: 'declined' }));
+            await Promise.all(declines);
+        } catch(e) { /* non-critical */ }
+
+        sharedLedgerId = ledgerId;
+        toast('✅ Shared ledger started!');
+        await showSharedActive();
+    } catch(e) {
+        console.error('acceptInvite unexpected error:', e);
+        toast('❌ Failed to accept invite (' + (e.code || e.message) + ')');
+    }
+};
+
+window.declineInvite = async (inviteId) => {
+    try {
+        await updateDoc(doc(db,'sharedInvites',inviteId), { status: 'declined' });
+        toast('❌ Invite declined');
+    } catch(e) { toast('❌ Error declining invite'); }
+};
+
+window.copyMyUID = () => {
+    if (!currentUser) { toast('❌ Not signed in'); return; }
+    navigator.clipboard.writeText(currentUser.uid)
+        .then(() => { SFX.copy(); toast('📋 Invite ID copied!'); })
+        .catch(() => {
+            // Fallback for browsers that block clipboard
+            const el = document.getElementById('myUIDDisplay');
+            if (el) {
+                const range = document.createRange();
+                range.selectNodeContents(el);
+                window.getSelection().removeAllRanges();
+                window.getSelection().addRange(range);
+            }
+            toast('📋 Select & copy the ID above');
+        });
+};
+
+window.sendInviteByUID = async () => {
+    const toUid = document.getElementById('partnerUIDInput').value.trim();
+    if (!toUid) { toast('❌ Paste your partner\'s Invite ID first'); return; }
+    if (toUid === currentUser.uid) { toast('❌ That\'s your own ID!'); return; }
+    try {
+        // Check if already connected
+        const userSnap = await getDoc(doc(db,'users',currentUser.uid));
+        if (userSnap.data()?.sharedLedgerId) { toast('⚠️ You\'re already in a shared ledger'); return; }
+
+        // Check if target user exists
+        const targetSnap = await getDoc(doc(db,'users',toUid));
+        if (!targetSnap.exists()) { toast('❌ User not found. Check the Invite ID'); return; }
+
+        // Check for existing pending invite
+        const existing = await getDocs(query(collection(db,'sharedInvites'),
+            where('fromUid','==',currentUser.uid), where('toUid','==',toUid), where('status','==','pending')));
+        if (!existing.empty) { toast('⏳ Invite already sent!'); return; }
+
+        await addDoc(collection(db,'sharedInvites'), {
+            fromUid: currentUser.uid,
+            fromName: currentUser.displayName || 'Someone',
+            fromPhoto: currentUser.photoURL || null,
+            toUid,
+            status: 'pending',
+            createdAt: serverTimestamp()
+        });
+        document.getElementById('partnerUIDInput').value = '';
+        toast('✅ Invite sent! Waiting for them to accept…');
+    } catch(e) {
+        console.error(e);
+        toast('❌ Failed to send invite (' + (e.code || e.message) + ')');
+    }
+};
+
+window.leaveSharedLedger = () => {
+    document.getElementById('leaveSharedModal').classList.add('active');
+};
+
+window.confirmLeaveShared = async () => {
+    document.getElementById('leaveSharedModal').classList.remove('active');
+    if (sharedUnsubscribe) sharedUnsubscribe();
+    await updateDoc(doc(db,'users',currentUser.uid), { sharedLedgerId: null });
+    sharedLedgerId = null;
+    sharedData = [];
+    document.getElementById('sharedSetup').style.display = 'block';
+    document.getElementById('sharedActive').style.display = 'none';
+    toast('👋 Left shared ledger');
+};
+
+window.deleteSharedEntry = async (id) => {
+    try {
+        await deleteDoc(doc(db,'sharedLedgers',sharedLedgerId,'entries',id));
+        toast('🗑️ Deleted');
+    } catch(e) { toast('❌ Error deleting'); }
+};
+
+window.handleAddEntry = () => {
+    if (currentLedger === 'shared') {
+        if (!sharedLedgerId) { toast('❌ Join a shared ledger first'); return; }
+        openAddModal('shared');
+        return;
+    }
+    if (!isPremium && data.length >= FREE_LIMIT) { showPaywall(); return; }
+    openAddModal();
+};
+
+// Run magic link check on page load
+checkMagicLink();
+
+function showEmailConfirmModal() {
+    return new Promise(resolve => {
+        document.getElementById('emailConfirmModal').style.display = 'flex';
+        document.getElementById('confirmEmailInput').value = '';
+        setTimeout(() => document.getElementById('confirmEmailInput').focus(), 100);
+        window._resolveEmailConfirm = (val) => {
+            document.getElementById('emailConfirmModal').style.display = 'none';
+            resolve(val);
+        };
+    });
+}
+window.submitConfirmEmail = () => {
+    const val = document.getElementById('confirmEmailInput').value.trim();
+    if (!val || !val.includes('@')) { toast('❌ Enter a valid email'); return; }
+    window._resolveEmailConfirm(val);
+};
+window.cancelConfirmEmail = () => { window._resolveEmailConfirm(null); };
+
+// Allow enter key on email input
+document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('magicEmailInput');
+    if (input) input.addEventListener('keydown', e => { if(e.key==='Enter') sendMagicLink(); });
+});
+
+
+
+window.signOut = () => {
+    document.getElementById('signoutModal').classList.add('active');
+};
+window.closeSignout = () => {
+    document.getElementById('signoutModal').classList.remove('active');
+};
+window.confirmSignout = async () => {
+    document.getElementById('signoutModal').classList.remove('active');
+    await fbSignOut(auth); data = []; toast('👋 Signed out');
+};
+
+window.showPaywall = () => { document.getElementById('paywallScreen').style.display = 'flex'; };
+window.hidepaywall = () => { document.getElementById('paywallScreen').style.display = 'none'; };
+
+window.payAndUnlock = () => {
+    const upiUrl = 'upi://pay?pa=Musaib4950e@ybl&pn=EliteLedger&am=1&cu=INR&tn=EliteLedgerPremium';
+    window.location.href = upiUrl;
+    setTimeout(() => toast('✅ After payment tap the Telegram button to activate!'), 2000);
+};
+
+// handleAddEntry defined above (shared-ledger-aware version)
+
+window.handlePDFClick = () => {
+    if (!isPremium) { showPaywall(); return; }
+    if (currentLedger === 'shared') {
+        if (!sharedLedgerId) { toast('❌ No shared ledger active'); return; }
+        exportPDF(sharedData, true);
+    } else {
+        exportPDF(data, false);
+    }
+};
+
+async function loadData() {
+    document.getElementById('loadingState').style.display = 'block';
+    document.getElementById('entriesList').innerHTML = '';
+    try {
+        const q = query(collection(db,'users',currentUser.uid,'entries'), orderBy('date','desc'));
+        const snap = await getDocs(q);
+        data = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    } catch(e) { console.error(e); toast('❌ Error loading data'); }
+    document.getElementById('loadingState').style.display = 'none';
+}
+
+function initUI() {
+    initTheme();
+    initNotifications();
+    loadAnnouncement();
+        checkRoomInviteURL();
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('entryDate').value = today;
+    document.getElementById('startDate').value = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+    document.getElementById('endDate').value = today;
+    buildCategoryFilter();
+    render();
+}
+
+function buildCategoryFilter() {
+    document.getElementById('categoryFilter').innerHTML = CATEGORIES.map(cat =>
+        `<span class="category-pill ${cat===activeCategory?'active':''}" onclick="filterByCategory('${cat}')">${cat==='All'?'✦ All':(CAT_EMOJI[cat]||'')+' '+cat}</span>`
+    ).join('');
+}
+
+window.filterByCategory = cat => { activeCategory=cat; buildCategoryFilter(); render(); };
+
+window.setType = type => {
+    currentType = type;
+    document.getElementById('typeExpense').className = 'type-btn '+(type==='expense'?'active-expense':'');
+    document.getElementById('typeCredit').className = 'type-btn '+(type==='credit'?'active-credit':'');
+};
+
+let isSharedEntry = false;
+
+window.openAddModal = (mode=null) => {
+    isSharedEntry = (mode === 'shared');
+    editId = (mode && mode !== 'shared') ? mode : null;
+
+    if (editId) {
+        const e = data.find(x=>x.id===editId);
+        document.getElementById('modalTitle').textContent = 'Edit Entry';
+        document.getElementById('entryTitle').value = e.title;
+        document.getElementById('entryAmount').value = e.amount;
+        document.getElementById('entryCategory').value = e.category||'General';
+        document.getElementById('entryNotes').value = e.notes||'';
+        document.getElementById('entryDate').value = e.date;
+        window.setType(e.type);
+    } else {
+        document.getElementById('modalTitle').textContent = isSharedEntry ? '🤝 Shared Entry' : 'New Entry';
+        document.getElementById('entryTitle').value = '';
+        document.getElementById('entryAmount').value = '';
+        document.getElementById('entryCategory').value = 'General';
+        document.getElementById('entryNotes').value = '';
+        document.getElementById('entryDate').value = new Date().toISOString().split('T')[0];
+        window.setType('expense');
+    }
+    document.getElementById('addModal').classList.add('active');
+    SFX.modalOpen();
+};
+
+window.closeModal = () => { document.getElementById('addModal').classList.remove('active'); editId=null; SFX.modalClose(); };
+
+window.saveEntry = async () => {
+    const title = document.getElementById('entryTitle').value.trim();
+    const amount = parseFloat(document.getElementById('entryAmount').value);
+    const category = document.getElementById('entryCategory').value;
+    const notes = document.getElementById('entryNotes').value.trim();
+    const date = document.getElementById('entryDate').value;
+    if (!title||!amount||!date||amount<=0) { SFX.error(); toast('❌ Fill all required fields'); return; }
+
+    if (!isSharedEntry && !isPremium && !editId && data.length >= FREE_LIMIT) {
+        window.closeModal(); showPaywall(); return;
+    }
+
+    const saveBtn = document.querySelector('.sheet-footer .btn-gold');
+    const origText = saveBtn.textContent;
+    saveBtn.innerHTML = '<span class="btn-spinner"></span> Saving...';
+    saveBtn.disabled = true;
+
+    const entry = { title, amount, type:currentType, category, notes, date, createdAt:Date.now() };
+
+    try {
+        if (isSharedEntry) {
+            // Save to shared ledger
+            const sharedEntry = { ...entry, addedBy: currentUser.uid, addedByName: currentUser.displayName?.split(' ')[0] || 'You' };
+            const entryRef = doc(collection(db,'sharedLedgers',sharedLedgerId,'entries'));
+            setDoc(entryRef, sharedEntry);
+            toast('✅ Added to shared ledger');
+            window.closeModal();
+        } else if (editId) {
+            updateDoc(doc(db,'users',currentUser.uid,'entries',editId), entry);
+            const idx = data.findIndex(x=>x.id===editId);
+            data[idx] = { id:editId, ...entry };
+            toast(navigator.onLine ? '✅ Entry updated' : '💾 Saved offline — syncs when online');
+            window.closeModal(); render();
+        } else {
+            const entryRef = doc(collection(db,'users',currentUser.uid,'entries'));
+            setDoc(entryRef, entry);
+            const newId = entryRef.id;
+            data.unshift({ id: newId, ...entry });
+            window._justAdded = newId;
+            SFX[currentType === 'credit' ? 'addCredit' : 'addExpense']();
+            toast(navigator.onLine ? '✅ Entry added' : '💾 Saved offline — syncs when online');
+            window.closeModal(); render();
+        }
+    } catch(e) { console.error(e); toast('❌ Error saving'); }
+    saveBtn.innerHTML = origText;
+    saveBtn.disabled = false;
+};
+
+let pendingDeleteId = null;
+
+window.deleteEntry = (id) => {
+    pendingDeleteId = id;
+    document.getElementById('deleteModal').classList.add('active');
+};
+
+window.closeDeleteModal = () => {
+    document.getElementById('deleteModal').classList.remove('active');
+    pendingDeleteId = null;
+};
+
+window.confirmDelete = async () => {
+    if (!pendingDeleteId) return;
+    const id = pendingDeleteId;
+    closeDeleteModal();
+    // Animate the row vanishing first, then delete
+    const rows = document.querySelectorAll('.entry-row');
+    let targetRow = null;
+    rows.forEach(r => { if (r.querySelector('[onclick*="' + id + '"]')) targetRow = r; });
+    const doDelete = async () => {
+        try {
+            await deleteDoc(doc(db,'users',currentUser.uid,'entries',id));
+            data = data.filter(e=>e.id!==id);
+            render(); toast('🗑️ Deleted');
+        } catch(e) { toast('❌ Error deleting'); render(); }
+    };
+    if (targetRow) {
+        SFX.delete();
+        targetRow.classList.add('entry-row-vanish');
+        setTimeout(doDelete, 440);
+    } else {
+        await doDelete();
+    }
+};
+
+function getFiltered() {
+    const search = document.getElementById('search').value.toLowerCase();
+    const start = document.getElementById('startDate').value;
+    const end = document.getElementById('endDate').value;
+    return data.filter(e =>
+        e.title.toLowerCase().includes(search) &&
+        (!start||e.date>=start) && (!end||e.date<=end) &&
+        (activeCategory==='All'||e.category===activeCategory)
+    );
+}
+
+function render() {
+    const filtered = getFiltered();
+    const list = document.getElementById('entriesList');
+    const empty = document.getElementById('emptyState');
+    const sorted = [...data].sort((a,b)=>a.date.localeCompare(b.date)||(a.createdAt||0)-(b.createdAt||0));
+    let r=0; const balMap={};
+    sorted.forEach(e=>{ r+=e.type==='credit'?e.amount:-e.amount; balMap[e.id]=r; });
+    if (filtered.length===0) {
+        list.innerHTML=''; empty.style.display='block';
+        document.getElementById('entryCount').textContent='0 entries';
+    } else {
+        empty.style.display='none';
+        document.getElementById('entryCount').textContent=`${filtered.length} entr${filtered.length===1?'y':'ies'}`;
+        list.innerHTML=filtered.map((e,i)=>{
+            const cat=e.category||'General';
+            const color=CAT_COLORS[cat]||'#94a3b8';
+            const emoji=CAT_EMOJI[cat]||'📦';
+            const bal=balMap[e.id]||0;
+            const isNew = (i===0 && window._justAdded && e.id===window._justAdded);
+            return `<div class="entry-row ${isNew?'entry-row-new':''}" style="animation-delay:${isNew?'0ms':`${i*35}ms`}">
+                <div class="entry-icon ${e.type}">${e.type==='credit'?'💰':'💸'}</div>
+                <div class="entry-info">
+                    <div class="entry-title">${e.title}</div>
+                    <div class="entry-meta">
+                        <span>${new Date(e.date+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</span>
+                        <span class="cat-badge" style="background:${color}22;color:${color}">${emoji} ${cat}</span>
+                        ${e.notes?`<span style="color:var(--text-dim);font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90px">${e.notes}</span>`:''}
+                    </div>
+                </div>
+                <div class="entry-right">
+                    <div class="entry-amount ${e.type}">${e.type==='credit'?'+':'-'}₹${e.amount.toFixed(2)}</div>
+                    <div class="entry-balance">bal ₹${bal.toFixed(0)}</div>
+                </div>
+                <div class="entry-actions">
+                    <button class="btn btn-edit" onclick="openAddModal('${e.id}')">✏️</button>
+                    <button class="btn btn-danger" onclick="deleteEntry('${e.id}')">🗑️</button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+    updateStats(); updateChart(); updateLimitBar();
+}
+
+function updateStats() {
+    const credits=data.reduce((s,e)=>e.type==='credit'?s+e.amount:s,0);
+    const expenses=data.reduce((s,e)=>e.type==='expense'?s+e.amount:s,0);
+    const net=credits-expenses;
+    document.getElementById('totalCredits').textContent=`₹${credits.toFixed(0)}`;
+    document.getElementById('totalExpenses').textContent=`₹${expenses.toFixed(0)}`;
+    document.getElementById('netSurplus').textContent=`₹${net.toFixed(0)}`;
+    document.getElementById('netSurplus').style.color=net>=0?'var(--green)':'var(--red)';
+    checkConfetti(net);
+}
+
+function updateChart() {
+    const ctx=document.getElementById('analyticsChart').getContext('2d');
+    if (chart) chart.destroy();
+    const months=[],creditData=[],expenseData=[];
+    for (let i=5;i>=0;i--) {
+        const d=new Date(); d.setMonth(d.getMonth()-i);
+        const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+        months.push(d.toLocaleDateString('en-IN',{month:'short'}));
+        creditData.push(data.filter(e=>e.date.startsWith(key)&&e.type==='credit').reduce((s,e)=>s+e.amount,0));
+        expenseData.push(data.filter(e=>e.date.startsWith(key)&&e.type==='expense').reduce((s,e)=>s+e.amount,0));
+    }
+    chart=new Chart(ctx,{ type:'bar', data:{ labels:months, datasets:[
+        {label:'Credits',data:creditData,backgroundColor:'rgba(52,211,153,0.7)',borderRadius:8,borderSkipped:false},
+        {label:'Expenses',data:expenseData,backgroundColor:'rgba(248,113,113,0.7)',borderRadius:8,borderSkipped:false}
+    ]}, options:{ responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{labels:{color:'#F5F3EE',font:{family:'Outfit',size:12},boxWidth:12,boxHeight:12}}},
+        scales:{ x:{ticks:{color:'rgba(245,243,238,0.6)',font:{family:'Outfit'}},grid:{color:'rgba(255,255,255,0.05)'}},
+                 y:{ticks:{color:'rgba(245,243,238,0.6)',font:{family:'Outfit'}},grid:{color:'rgba(255,255,255,0.05)'}} }
+    }});
+}
+
+window.applyFilter = () => render();
+window.resetFilter = () => {
+    document.getElementById('search').value='';
+    const today=new Date().toISOString().split('T')[0];
+    document.getElementById('startDate').value=new Date(new Date().getFullYear(),new Date().getMonth(),1).toISOString().split('T')[0];
+    document.getElementById('endDate').value=today;
+    activeCategory='All'; buildCategoryFilter(); render();
+};
+
+window.exportPDF = (sourceData, isShared) => {
+    sourceData = sourceData || data;
+    if (!sourceData.length) { toast('❌ No entries to export'); return; }
+    const {jsPDF}=window.jspdf;
+    const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight(),m=15,cw=pw-2*m;
+    pdf.setFillColor(255,255,255); pdf.rect(0,0,pw,ph,'F');
+    pdf.setFillColor(212,175,55); pdf.rect(0,0,pw,28,'F');
+    pdf.setTextColor(5,5,5); pdf.setFont('Helvetica','bold'); pdf.setFontSize(22);
+    pdf.text('ELITE LEDGER',pw/2,17,{align:'center'});
+    pdf.setFontSize(9); pdf.text(isShared ? 'Shared Ledger Statement' : 'Financial Statement',pw/2,24,{align:'center'});
+    pdf.setTextColor(120,120,120); pdf.setFontSize(8); pdf.setFont('Helvetica','normal');
+    pdf.text(`Generated: ${new Date().toLocaleDateString('en-IN')} | ${currentUser?.displayName||''}${isShared?' · Shared Ledger':''}`,m,36);
+    const credits=sourceData.reduce((s,e)=>e.type==='credit'?s+e.amount:s,0);
+    const expenses=sourceData.reduce((s,e)=>e.type==='expense'?s+e.amount:s,0);
+    const net=credits-expenses;
+    const bw=(cw/3)-2,bh=20,by=42;
+    [[230,230,230],[230,250,230],[255,235,235]].forEach((fill,i)=>{ pdf.setFillColor(...fill); pdf.rect(m+i*(bw+2),by,bw,bh,'F'); });
+    [['Net Surplus',net,m+2],['Credits',credits,m+bw+4],['Expenses',expenses,m+(bw+2)*2+2]].forEach(([label,val,x],i)=>{
+        pdf.setFontSize(8); pdf.setFont('Helvetica','bold'); pdf.setTextColor(80,80,80); pdf.text(label,x,by+7);
+        pdf.setFontSize(11);
+        if(i===0) pdf.setTextColor(net>=0?50:200,net>=0?150:50,50);
+        else if(i===1) pdf.setTextColor(50,150,50);
+        else pdf.setTextColor(200,50,50);
+        pdf.text(`Rs.${val.toFixed(2)}`,x,by+16);
+    });
+    // Use narrower "By" column for shared, replacing "Bal"
+    const ty=70;
+    const cols = isShared ? [22,38,18,18,26,28] : [22,42,18,18,30,20];
+    const headers = isShared ? ['Date','Title','Cat','Type','Amount','By'] : ['Date','Title','Cat','Type','Amount','Bal'];
+    pdf.setFillColor(212,175,55); pdf.rect(m,ty,cw,9,'F');
+    pdf.setTextColor(255,255,255); pdf.setFont('Helvetica','bold'); pdf.setFontSize(9);
+    let x=m+1; headers.forEach((h,i)=>{ pdf.text(h,x,ty+6); x+=cols[i]; });
+    const sorted=[...sourceData].sort((a,b)=>a.date.localeCompare(b.date)||(a.createdAt||0)-(b.createdAt||0));
+    let r2=0; const balMap={};
+    sorted.forEach(e=>{ r2+=e.type==='credit'?e.amount:-e.amount; balMap[e.id]=r2; });
+    let cy=ty+11,ri=0;
+    sorted.forEach(entry=>{
+        if(cy>ph-15){ pdf.addPage(); cy=m; }
+        pdf.setFillColor(ri%2===0?248:255,ri%2===0?248:255,ri%2===0?248:255);
+        pdf.rect(m,cy-2,cw,8,'F'); pdf.setDrawColor(220,220,220); pdf.rect(m,cy-2,cw,8);
+        const ic=entry.type==='credit';
+        pdf.setTextColor(ic?50:180,ic?130:50,50); pdf.setFont('Helvetica','normal'); pdf.setFontSize(8);
+        x=m+1;
+        const lastCol = isShared
+            ? (entry.addedByName||'?').split(' ')[0].substring(0,10)
+            : `Rs.${(balMap[entry.id]||0).toFixed(0)}`;
+        [new Date(entry.date+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'2-digit',year:'2-digit'}),
+         entry.title.length>16?entry.title.substring(0,14)+'..':entry.title,
+         (entry.category||'Gen').substring(0,6), ic?'Credit':'Expense',
+         `${ic?'+':'-'}Rs.${entry.amount.toFixed(0)}`, lastCol
+        ].forEach((v,i)=>{ pdf.text(String(v),x,cy+4); x+=cols[i]; });
+        cy+=8; ri++;
+    });
+    pdf.setTextColor(160,160,160); pdf.setFont('Helvetica','italic'); pdf.setFontSize(7);
+    pdf.text('Elite Ledger © 2026 | Confidential Financial Statement',pw/2,ph-5,{align:'center'});
+    const filename = isShared ? 'elite-ledger-shared.pdf' : 'elite-ledger.pdf';
+    pdf.save(filename);
+    toast('✅ PDF exported!');
+};
+
+window.openUPI = () => {
+    window.location.href = 'upi://pay?pa=Musaib4950e@ybl&pn=EliteLedger&cu=INR';
+    setTimeout(()=>toast('📱 Open Google Pay or PhonePe manually if app did not open'),2000);
+};
+
+
+// ═══════════════════════════════════════════
+// PREMIUM SOUND ENGINE (Web Audio API)
+// ═══════════════════════════════════════════
+const SFX = (() => {
+    let ctx = null;
+    let enabled = localStorage.getItem('el_sfx') !== 'off';
+
+    function getCtx() {
+        if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (ctx.state === 'suspended') ctx.resume();
+        return ctx;
+    }
+
+    function master(gain = 0.18) {
+        const g = getCtx().createGain();
+        g.gain.setValueAtTime(gain, getCtx().currentTime);
+        g.connect(getCtx().destination);
+        return g;
+    }
+
+    // Soft reverb tail
+    function reverb(output, dur = 0.8, decay = 0.5) {
+        const ac = getCtx();
+        const len = ac.sampleRate * dur;
+        const buf = ac.createBuffer(2, len, ac.sampleRate);
+        for (let c = 0; c < 2; c++) {
+            const d = buf.getChannelData(c);
+            for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
+        }
+        const conv = ac.createConvolver();
+        conv.buffer = buf;
+        conv.connect(output);
+        return conv;
+    }
+
+    function playTone(freq, type, startTime, duration, gainVal, output) {
+        const ac = getCtx();
+        const osc = ac.createOscillator();
+        const g = ac.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, startTime);
+        g.gain.setValueAtTime(0, startTime);
+        g.gain.linearRampToValueAtTime(gainVal, startTime + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+        osc.connect(g); g.connect(output);
+        osc.start(startTime); osc.stop(startTime + duration + 0.05);
+    }
+
+    const sounds = {
+        // ✅ Credit added — ascending rich chord (C maj 7)
+        addCredit() {
+            if (!enabled) return;
+            const ac = getCtx(); const now = ac.currentTime;
+            const out = master(0.14);
+            const rv = reverb(out, 1.2, 0.6);
+            [[261.6,0],[329.6,0.05],[392,0.1],[493.9,0.15],[523.2,0.22]].forEach(([f,d]) => {
+                playTone(f, 'sine', now+d, 0.9, 0.4, rv);
+                playTone(f*2, 'sine', now+d, 0.5, 0.08, rv);
+            });
+        },
+
+        // 💸 Expense added — descending soft minor (A min)
+        addExpense() {
+            if (!enabled) return;
+            const ac = getCtx(); const now = ac.currentTime;
+            const out = master(0.13);
+            const rv = reverb(out, 0.9, 0.5);
+            [[440,0],[349.2,0.06],[293.7,0.13],[261.6,0.2]].forEach(([f,d]) => {
+                playTone(f, 'sine', now+d, 0.7, 0.35, rv);
+            });
+            // Subtle low rumble
+            playTone(55, 'sine', now, 0.25, 0.15, out);
+        },
+
+        // 🗑️ Delete — whoosh + soft thud
+        delete() {
+            if (!enabled) return;
+            const ac = getCtx(); const now = ac.currentTime;
+            const out = master(0.16);
+            // Whoosh (noise burst)
+            const buf = ac.createBuffer(1, ac.sampleRate * 0.3, ac.sampleRate);
+            const d = buf.getChannelData(0);
+            for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i/d.length, 2);
+            const src = ac.createBufferSource();
+            src.buffer = buf;
+            const filter = ac.createBiquadFilter();
+            filter.type = 'bandpass'; filter.frequency.value = 800;
+            filter.Q.value = 0.8;
+            const wg = ac.createGain();
+            wg.gain.setValueAtTime(0.5, now);
+            wg.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+            src.connect(filter); filter.connect(wg); wg.connect(out);
+            src.start(now); src.stop(now + 0.3);
+            // Thud
+            playTone(60, 'sine', now+0.05, 0.18, 0.5, out);
+            playTone(40, 'sine', now+0.07, 0.2, 0.3, out);
+        },
+
+        // 🎉 Celebrate — glittery fanfare arpeggio
+        celebrate() {
+            if (!enabled) return;
+            const ac = getCtx(); const now = ac.currentTime;
+            const out = master(0.15);
+            const rv = reverb(out, 2.0, 0.4);
+            // Main fanfare notes
+            const notes = [523.2,659.3,783.9,1046.5,1318.5,1567.9];
+            notes.forEach((f,i) => {
+                playTone(f, 'sine', now + i*0.09, 1.0, 0.35, rv);
+                playTone(f, 'triangle', now + i*0.09, 0.5, 0.1, rv);
+            });
+            // Sparkle high shimmer
+            [2093,2637,3136].forEach((f,i) => {
+                playTone(f, 'sine', now + 0.5 + i*0.08, 0.6, 0.06, rv);
+            });
+            // Second burst
+            setTimeout(() => {
+                if (!enabled) return;
+                const ac2 = getCtx(); const n2 = ac2.currentTime;
+                const o2 = master(0.1);
+                const rv2 = reverb(o2, 1.5, 0.4);
+                [659.3,830.6,1046.5,1318.5].forEach((f,i) => {
+                    playTone(f, 'sine', n2+i*0.07, 0.8, 0.25, rv2);
+                });
+            }, 800);
+        },
+
+        // 🪟 Modal open — soft whoosh up
+        modalOpen() {
+            if (!enabled) return;
+            const ac = getCtx(); const now = ac.currentTime;
+            const out = master(0.08);
+            const osc = ac.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(300, now);
+            osc.frequency.exponentialRampToValueAtTime(900, now + 0.18);
+            const g = ac.createGain();
+            g.gain.setValueAtTime(0.3, now);
+            g.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+            osc.connect(g); g.connect(out);
+            osc.start(now); osc.stop(now + 0.25);
+        },
+
+        // ❌ Modal close — soft whoosh down
+        modalClose() {
+            if (!enabled) return;
+            const ac = getCtx(); const now = ac.currentTime;
+            const out = master(0.07);
+            const osc = ac.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(700, now);
+            osc.frequency.exponentialRampToValueAtTime(250, now + 0.16);
+            const g = ac.createGain();
+            g.gain.setValueAtTime(0.25, now);
+            g.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+            osc.connect(g); g.connect(out);
+            osc.start(now); osc.stop(now + 0.2);
+        },
+
+        // 📋 Copy — clean double-click
+        copy() {
+            if (!enabled) return;
+            const ac = getCtx(); const now = ac.currentTime;
+            const out = master(0.1);
+            [880, 1320].forEach((f, i) => playTone(f, 'sine', now + i*0.06, 0.12, 0.3, out));
+        },
+
+        // ⚠️ Error — low buzz
+        error() {
+            if (!enabled) return;
+            const ac = getCtx(); const now = ac.currentTime;
+            const out = master(0.12);
+            playTone(120, 'sawtooth', now, 0.18, 0.4, out);
+            playTone(110, 'sawtooth', now+0.09, 0.18, 0.3, out);
+        },
+
+        // 🔔 Notification tap
+        tap() {
+            if (!enabled) return;
+            const ac = getCtx(); const now = ac.currentTime;
+            const out = master(0.09);
+            playTone(1200, 'sine', now, 0.08, 0.35, out);
+            playTone(1600, 'sine', now+0.04, 0.07, 0.2, out);
+        },
+
+        toggle(btn) {
+            enabled = !enabled;
+            localStorage.setItem('el_sfx', enabled ? 'on' : 'off');
+            if (btn) btn.textContent = enabled ? '🔊' : '🔇';
+            if (enabled) this.tap();
+        },
+
+        isEnabled() { return enabled; }
+    };
+
+    return sounds;
+})();
+
+window.toast = msg => {
+    document.querySelectorAll('.toast').forEach(t=>t.remove());
+    const t=document.createElement('div'); t.className='toast'; t.textContent=msg;
+    document.body.appendChild(t); setTimeout(()=>t.remove(),2800);
+};
+
+document.getElementById('addModal').addEventListener('click',function(e){ if(e.target===this) window.closeModal(); });
+
+// ───────────────────────────────────────
+// THEME TOGGLE
+// ───────────────────────────────────────
+function initTheme() {
+    const saved = localStorage.getItem('el_theme') || 'dark';
+    if (saved === 'light') {
+        document.body.classList.add('light');
+        document.getElementById('themeBtn').textContent = '☀️';
+    } else {
+        document.getElementById('themeBtn').textContent = '🌙';
+    }
+    const sfxBtn = document.getElementById('sfxBtn');
+    if (sfxBtn) sfxBtn.textContent = SFX.isEnabled() ? '🔊' : '🔇';
+}
+
+window.toggleTheme = () => {
+    const isLight = document.body.classList.toggle('light');
+    localStorage.setItem('el_theme', isLight ? 'light' : 'dark');
+    document.getElementById('themeBtn').textContent = isLight ? '☀️' : '🌙';
+};
+
+// ───────────────────────────────────────
+// PUSH NOTIFICATIONS (DM alerts)
+// ───────────────────────────────────────
+let notifPermission = Notification?.permission || 'default';
+
+function initNotifications() {
+    if (!('Notification' in window)) return;
+    notifPermission = Notification.permission;
+    const dismissed = localStorage.getItem('el_notif_dismissed');
+    if (notifPermission === 'default' && !dismissed) {
+        document.getElementById('notifBanner').style.display = 'flex';
+    }
+}
+
+window.requestNotifPermission = async () => {
+    document.getElementById('notifBanner').style.display = 'none';
+    try {
+        const result = await Notification.requestPermission();
+        notifPermission = result;
+        if (result === 'granted') {
+            toast('🔔 Notifications enabled!');
+            new Notification('Elite Ledger', {
+                body: 'You will now get notified when someone messages you!',
+                icon: '/icon-192.png'
+            });
+        } else {
+            toast('Notifications blocked. Enable in browser settings.');
+        }
+    } catch(e) { console.log(e); }
+};
+
+window.dismissNotifBanner = () => {
+    document.getElementById('notifBanner').style.display = 'none';
+    localStorage.setItem('el_notif_dismissed', '1');
+};
+
+function sendDMNotification(senderName, message) {
+    if (notifPermission !== 'granted') return;
+    if (document.visibilityState === 'visible') return;
+    const body = message.length > 60 ? message.substring(0, 57) + '...' : message;
+    // Use service worker for persistent notifications (works on home screen)
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.ready.then(reg => {
+            reg.showNotification(`💬 ${senderName}`, {
+                body,
+                icon: '/icon-192.png',
+                badge: '/icon-192.png',
+                tag: 'dm-notification',
+                renotify: true,
+                vibrate: [200, 100, 200],
+                data: { url: '/' }
+            });
+        }).catch(() => {
+            // Fallback to regular notification
+            try { new Notification(`💬 ${senderName}`, { body, icon: '/icon-192.png' }); } catch(e) {}
+        });
+    } else {
+        try { new Notification(`💬 ${senderName}`, { body, icon: '/icon-192.png' }); } catch(e) {}
+    }
+}
+
+
+// ───────────────────────────────────────
+// ANNOUNCEMENTS
+// ───────────────────────────────────────
+async function loadAnnouncement() {
+    try {
+        const annRef = doc(db, 'announcements', 'current');
+        const snap = await getDoc(annRef);
+        if (!snap.exists()) return;
+        const ann = snap.data();
+        if (!ann.active || !ann.text) return;
+
+        // Check if user already dismissed this announcement
+        const dismissedId = localStorage.getItem('el_dismissed_ann');
+        if (dismissedId === ann.id) return;
+
+        document.getElementById('announcementEmoji').textContent = ann.emoji || '📢';
+        document.getElementById('announcementText').textContent = ann.text;
+        document.getElementById('announcementBanner').classList.add('active');
+    } catch(e) { console.log('No announcement:', e); }
+}
+
+window.dismissAnnouncement = () => {
+    const banner = document.getElementById('announcementBanner');
+    banner.classList.remove('active');
+    // Remember dismissed state using announcement ID
+    const text = document.getElementById('announcementText').textContent;
+    localStorage.setItem('el_dismissed_ann', btoa(text).substring(0,20));
+};
+
+
+// ───────────────────────────────────────
+// CONFETTI
+// ───────────────────────────────────────
+let confettiShown = false;
+
+function spawnConfettiWave(container, count, delayOffset) {
+    const colors = ['#D4AF37','#F0CC5A','#34d399','#60a5fa','#f472b6','#fb923c','#a78bfa','#ffffff','#c084fc','#38bdf8'];
+    const shapes = ['circle','square','rect','triangle'];
+    for (let i = 0; i < count; i++) {
+        const piece = document.createElement('div');
+        piece.className = 'confetti-piece';
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const shape = shapes[Math.floor(Math.random() * shapes.length)];
+        const size = Math.random() * 10 + 5;
+        const left = Math.random() * 100;
+        const duration = Math.random() * 2.5 + 2.5;
+        const delay = delayOffset + Math.random() * 1.2;
+        let shapeStyle = 'border-radius:2px';
+        if (shape === 'circle') shapeStyle = 'border-radius:50%';
+        else if (shape === 'rect') shapeStyle = 'border-radius:3px;width:' + (size * 2) + 'px';
+        piece.style.cssText = `
+            left:${left}%;
+            width:${size}px; height:${size}px;
+            background:${color};
+            animation-duration:${duration}s;
+            animation-delay:${delay}s;
+            ${shapeStyle};
+        `;
+        container.appendChild(piece);
+    }
+}
+
+function launchConfetti() {
+    const container = document.createElement('div');
+    container.className = 'confetti-container';
+    document.body.appendChild(container);
+
+    // First burst
+    spawnConfettiWave(container, 80, 0);
+    // Second wave at 1.5s
+    setTimeout(() => spawnConfettiWave(container, 60, 0), 1500);
+    // Third wave at 2.8s
+    setTimeout(() => spawnConfettiWave(container, 50, 0), 2800);
+
+    // Sparkle bursts from multiple points
+    const sparkColors = ['#D4AF37','#F0CC5A','#f472b6','#a78bfa','#34d399'];
+    const origins = [
+        {x:'20%',y:'30%'},{x:'50%',y:'20%'},{x:'80%',y:'30%'},
+        {x:'35%',y:'50%'},{x:'65%',y:'45%'}
+    ];
+    origins.forEach((o, oi) => {
+        setTimeout(() => {
+            for (let s = 0; s < 12; s++) {
+                const spark = document.createElement('div');
+                spark.className = 'sparkle-burst';
+                const angle = (s / 12) * 360;
+                const dist = Math.random() * 80 + 40;
+                const rad = angle * Math.PI / 180;
+                const sx = Math.cos(rad) * dist + 'px';
+                const sy = Math.sin(rad) * dist + 'px';
+                const color = sparkColors[Math.floor(Math.random() * sparkColors.length)];
+                const ssize = Math.random() * 6 + 3;
+                spark.style.cssText = `
+                    left:${o.x}; top:${o.y};
+                    width:${ssize}px; height:${ssize}px;
+                    background:${color};
+                    --sx:${sx}; --sy:${sy};
+                    animation-duration:${0.6 + Math.random()*0.4}s;
+                    box-shadow:0 0 6px ${color};
+                `;
+                document.body.appendChild(spark);
+                setTimeout(() => spark.remove(), 1200);
+            }
+        }, oi * 300);
+    });
+
+    setTimeout(() => container.remove(), 8000);
+}
+
+function checkConfetti(net) {
+    if (net > 0 && !confettiShown) {
+        confettiShown = true;
+        launchConfetti();
+        SFX.celebrate();
+    } else if (net <= 0) {
+        confettiShown = false;
+    }
+}
+
+// ───────────────────────────────────────
+// ROOMS SYSTEM
+// ───────────────────────────────────────
+let activeRoomId = null;
+let activeRoomData = null;
+let roomChatUnsub = null;
+let roomsUnsub = null;
+
+function generateRoomCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    return code;
+}
+
+window.openRooms = async () => {
+    document.getElementById('roomsScreen').classList.add('active');
+    loadMyRooms();
+};
+
+window.closeRooms = () => {
+    document.getElementById('roomsScreen').classList.remove('active');
+    if (roomsUnsub) { roomsUnsub(); roomsUnsub = null; }
+};
+
+async function loadMyRooms() {
+    const listEl = document.getElementById('roomsList');
+    listEl.innerHTML = '<div style="text-align:center;color:var(--text-dim);padding:40px;font-size:14px">Loading rooms...</div>';
+    try {
+        const q = query(collection(db, 'rooms'), where('members', 'array-contains', currentUser.uid));
+        if (roomsUnsub) roomsUnsub();
+        roomsUnsub = onSnapshot(q, snap => {
+            if (snap.empty) {
+                listEl.innerHTML = '<div style="text-align:center;color:var(--text-dim);padding:40px;font-size:14px">No rooms yet.<br>Create or join one below! 👇</div>';
+                return;
+            }
+            const rooms = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            listEl.innerHTML = rooms.map(r => `
+                <div class="room-item" onclick="openRoomChat('${r.id}')">
+                    <div class="room-icon">${r.emoji || '💬'}</div>
+                    <div class="room-info">
+                        <div class="room-name">${r.name}</div>
+                        <div class="room-meta">
+                            <span>👥 ${r.members?.length || 1} member${(r.members?.length||1)===1?'':'s'}</span>
+                            ${r.hasPassword ? '<span class="room-lock">🔒 Private</span>' : '<span style="color:var(--green);font-size:11px">🌐 Public</span>'}
+                        </div>
+                    </div>
+                    <div style="font-size:11px;color:var(--text-dim);font-family:monospace;letter-spacing:2px">${r.code}</div>
+                </div>`).join('');
+        });
+    } catch(e) {
+        listEl.innerHTML = '<div style="text-align:center;color:var(--red);padding:40px;font-size:13px">❌ Error loading rooms</div>';
+    }
+}
+
+// ── CREATE ROOM MODAL ──
+window.openCreateRoom = () => {
+    document.getElementById('createRoomModal').classList.add('active');
+    document.getElementById('roomNameInput').value = '';
+    document.getElementById('roomPasswordInput').value = '';
+    document.getElementById('roomPasswordInput').parentElement.style.display = 'none';
+    document.getElementById('passwordToggle').checked = false;
+    const emojis = ['💬','🏠','💰','🎯','🚀','🔥','⭐','🎮','📊','🌍'];
+    document.getElementById('selectedRoomEmoji').textContent = emojis[Math.floor(Math.random()*emojis.length)];
+};
+
+window.closeCreateRoom = () => {
+    document.getElementById('createRoomModal').classList.remove('active');
+};
+
+window.togglePasswordField = (el) => {
+    document.getElementById('roomPasswordInput').parentElement.style.display = el.checked ? 'block' : 'none';
+};
+
+window.pickEmoji = (emoji) => {
+    document.getElementById('selectedRoomEmoji').textContent = emoji;
+    document.getElementById('emojiPickerWrap').style.display = 'none';
+};
+
+window.toggleEmojiPicker = () => {
+    const wrap = document.getElementById('emojiPickerWrap');
+    wrap.style.display = wrap.style.display === 'none' ? 'flex' : 'none';
+};
+
+window.createRoom = async () => {
+    const name = document.getElementById('roomNameInput').value.trim();
+    if (!name) { toast('❌ Enter a room name'); return; }
+    const hasPassword = document.getElementById('passwordToggle').checked;
+    const password = document.getElementById('roomPasswordInput').value.trim();
+    if (hasPassword && !password) { toast('❌ Enter a password'); return; }
+    const emoji = document.getElementById('selectedRoomEmoji').textContent;
+    const code = generateRoomCode();
+    try {
+        await addDoc(collection(db, 'rooms'), {
+            name, emoji, code,
+            hasPassword,
+            password: hasPassword ? password : null,
+            createdBy: currentUser.uid,
+            createdByName: currentUser.displayName || 'Unknown',
+            members: [currentUser.uid],
+            createdAt: serverTimestamp()
+        });
+        closeCreateRoom();
+        toast('✅ Room created! Code: ' + code);
+    } catch(e) {
+        console.error(e);
+        toast('❌ Failed to create room');
+    }
+};
+
+// ── JOIN ROOM MODAL ──
+window.openJoinRoom = () => {
+    document.getElementById('joinRoomModal').classList.add('active');
+    document.getElementById('joinCodeInput').value = '';
+    document.getElementById('joinPasswordWrap').style.display = 'none';
+    document.getElementById('joinRoomPassword').value = '';
+};
+
+window.closeJoinRoom = () => {
+    document.getElementById('joinRoomModal').classList.remove('active');
+};
+
+window.lookupRoomCode = async () => {
+    const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
+    if (code.length < 4) return;
+    try {
+        const q = query(collection(db, 'rooms'), where('code', '==', code));
+        const snap = await getDocs(q);
+        if (snap.empty) {
+            document.getElementById('joinRoomPreview').innerHTML = '<div style="color:var(--red);font-size:13px;text-align:center;padding:8px">❌ Room not found</div>';
+            document.getElementById('joinPasswordWrap').style.display = 'none';
+            return;
+        }
+        const room = { id: snap.docs[0].id, ...snap.docs[0].data() };
+        if (room.members?.includes(currentUser.uid)) {
+            document.getElementById('joinRoomPreview').innerHTML = '<div style="color:var(--gold);font-size:13px;text-align:center;padding:8px">✅ You are already in this room</div>';
+            document.getElementById('joinPasswordWrap').style.display = 'none';
+            return;
+        }
+        document.getElementById('joinRoomPreview').innerHTML = `
+            <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:14px">
+                <div style="font-size:28px">${room.emoji||'💬'}</div>
+                <div>
+                    <div style="font-size:15px;font-weight:700">${room.name}</div>
+                    <div style="font-size:12px;color:var(--text-dim)">👥 ${room.members?.length||1} members · ${room.hasPassword?'🔒 Private':'🌐 Public'}</div>
+                </div>
+            </div>`;
+        document.getElementById('joinPasswordWrap').style.display = room.hasPassword ? 'block' : 'none';
+    } catch(e) { toast('❌ Error looking up room'); }
+};
+
+window.joinRoom = async () => {
+    const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
+    if (!code) { toast('❌ Enter a room code'); return; }
+    try {
+        const q = query(collection(db, 'rooms'), where('code', '==', code));
+        const snap = await getDocs(q);
+        if (snap.empty) { toast('❌ Room not found'); return; }
+        const roomDoc = snap.docs[0];
+        const room = roomDoc.data();
+        if (room.members?.includes(currentUser.uid)) { toast('✅ Already in this room'); closeJoinRoom(); return; }
+        if (room.hasPassword) {
+            const entered = document.getElementById('joinRoomPassword').value.trim();
+            if (entered !== room.password) { toast('❌ Wrong password'); return; }
+        }
+        await updateDoc(doc(db, 'rooms', roomDoc.id), { members: [...(room.members||[]), currentUser.uid] });
+        closeJoinRoom();
+        toast('✅ Joined ' + room.name + '!');
+    } catch(e) { console.error(e); toast('❌ Failed to join room'); }
+};
+
+// ── ROOM CHAT ──
+window.openRoomChat = async (roomId) => {
+    activeRoomId = roomId;
+    if (roomChatUnsub) { roomChatUnsub(); roomChatUnsub = null; }
+
+    const roomSnap = await getDoc(doc(db, 'rooms', roomId));
+    activeRoomData = { id: roomId, ...roomSnap.data() };
+
+    document.getElementById('roomChatName').textContent = activeRoomData.name;
+    document.getElementById('roomChatMeta').textContent = '👥 ' + (activeRoomData.members?.length||1) + ' members · ' + activeRoomData.code;
+    document.getElementById('roomChatScreen').classList.add('active');
+    document.getElementById('roomChatMessages').innerHTML = '<div style="text-align:center;color:var(--text-dim);font-size:13px;padding:20px">Loading...</div>';
+
+    const msgsRef = collection(db, 'rooms', roomId, 'messages');
+    const q = query(msgsRef, orderBy('timestamp', 'asc'));
+    roomChatUnsub = onSnapshot(q, snap => {
+        const el = document.getElementById('roomChatMessages');
+        if (snap.empty) { el.innerHTML = '<div style="text-align:center;color:var(--text-dim);font-size:13px;padding:20px">No messages yet. Say hello! 👋</div>'; return; }
+        el.innerHTML = snap.docs.map(d => {
+            const m = d.data();
+            const isOut = m.uid === currentUser.uid;
+            const time = m.timestamp ? new Date(m.timestamp.toDate()).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : '';
+            return `<div style="display:flex;flex-direction:column;align-items:${isOut?'flex-end':'flex-start'}">
+                ${!isOut ? `<div class="msg-sender">${m.senderName||'Unknown'}</div>` : ''}
+                <div class="msg-bubble ${isOut?'msg-out':'msg-in'}">${m.text}</div>
+                <div class="msg-time" style="align-self:${isOut?'flex-end':'flex-start'}">${time}</div>
+            </div>`;
+        }).join('');
+        el.scrollTop = el.scrollHeight;
+    });
+};
+
+window.closeRoomChat = () => {
+    document.getElementById('roomChatScreen').classList.remove('active');
+    if (roomChatUnsub) { roomChatUnsub(); roomChatUnsub = null; }
+    activeRoomId = null; activeRoomData = null;
+};
+
+window.sendRoomMessage = async () => {
+    const input = document.getElementById('roomChatInput');
+    const text = input.value.trim();
+    if (!text || !activeRoomId) return;
+    input.value = '';
+    try {
+        await addDoc(collection(db, 'rooms', activeRoomId, 'messages'), {
+            text, uid: currentUser.uid,
+            senderName: currentUser.displayName || 'Unknown',
+            timestamp: serverTimestamp()
+        });
+    } catch(e) { toast('❌ Failed to send'); }
+};
+
+window.roomChatKeydown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendRoomMessage(); }
+};
+
+window.showRoomQR = async () => {
+    if (!activeRoomData) return;
+    document.getElementById('roomInfoModal').classList.add('active');
+    document.getElementById('roomInfoCode').textContent = activeRoomData.code;
+    document.getElementById('roomInfoName').textContent = (activeRoomData.emoji||'💬') + ' ' + activeRoomData.name;
+
+    const joinUrl = `${window.location.origin}${window.location.pathname}?room=${activeRoomData.code}`;
+    const qrEl = document.getElementById('roomQRCode');
+    qrEl.innerHTML = '<div style="color:#999;font-size:13px;padding:20px">Loading QR...</div>';
+
+    const img = new Image();
+    img.onload = () => {
+        qrEl.innerHTML = '';
+        img.style.cssText = 'width:180px;height:180px;border-radius:12px;display:block';
+        qrEl.appendChild(img);
+    };
+    img.onerror = () => {
+        qrEl.innerHTML = '<div style="color:#f87171;font-size:12px;text-align:center;padding:10px">QR unavailable offline.<br>Share the code below instead.</div>';
+    };
+    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(joinUrl)}&bgcolor=ffffff&color=070b1a&margin=10`;
+};
+
+window.closeRoomInfo = () => {
+    document.getElementById('roomInfoModal').classList.remove('active');
+};
+
+window.copyRoomCode = () => {
+    if (!activeRoomData) return;
+    navigator.clipboard.writeText(activeRoomData.code).then(() => toast('✅ Code copied!'));
+};
+
+window.leaveRoom = async () => {
+    if (!activeRoomId || !activeRoomData) return;
+    document.getElementById('roomInfoModal').classList.remove('active');
+    const members = (activeRoomData.members || []).filter(uid => uid !== currentUser.uid);
+    await updateDoc(doc(db, 'rooms', activeRoomId), { members });
+    closeRoomChat();
+    toast('👋 Left room');
+};
+
+// Check URL for room code on load
+function checkRoomInviteURL() {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('room');
+    if (code) {
+        setTimeout(() => {
+            openRooms();
+            document.getElementById('joinCodeInput') && (document.getElementById('joinCodeInput').value = code);
+            openJoinRoom();
+            document.getElementById('joinCodeInput').value = code;
+            lookupRoomCode();
+        }, 2500);
+    }
+}
+
+</script>
+
+<!-- ROOMS LIST SCREEN -->
+<div id="roomsScreen">
+    <div class="room-header">
+        <button class="room-back" onclick="closeRooms()">←</button>
+        <div class="room-header-title">💬 Rooms</div>
+    </div>
+    <div class="rooms-list" id="roomsList">
+        <div style="text-align:center;color:var(--text-dim);padding:40px;font-size:14px">No rooms yet</div>
+    </div>
+    <div class="rooms-footer">
+        <button class="btn-create-room" onclick="openCreateRoom()">✦ Create Room</button>
+        <button class="btn-join-room" onclick="openJoinRoom()">🔗 Join Room</button>
+    </div>
+</div>
+
+<!-- ROOM CHAT SCREEN -->
+<div id="roomChatScreen">
+    <div class="chat-header">
+        <button class="room-back" onclick="closeRoomChat()">←</button>
+        <div style="flex:1;min-width:0">
+            <div class="chat-room-name" id="roomChatName"></div>
+            <div class="chat-room-meta" id="roomChatMeta"></div>
+        </div>
+        <button class="room-back" onclick="showRoomQR()" title="Room Info & QR">⋯</button>
+    </div>
+    <div class="chat-messages" id="roomChatMessages"></div>
+    <div class="chat-input-wrap">
+        <textarea class="chat-input" id="roomChatInput" placeholder="Type a message..." rows="1" onkeydown="roomChatKeydown(event)"></textarea>
+        <button class="chat-send" onclick="sendRoomMessage()">➤</button>
+    </div>
+</div>
+
+<!-- CREATE ROOM MODAL -->
+<div class="room-modal-overlay" id="createRoomModal">
+    <div class="room-modal-box">
+        <div class="room-modal-title">✦ Create a Room</div>
+        <div class="room-field">
+            <label>Room Name</label>
+            <input class="room-input" id="roomNameInput" placeholder="e.g. Family Budget, Trip Fund..." maxlength="40" autocomplete="off">
+        </div>
+        <div class="room-field">
+            <label>Pick an Emoji</label>
+            <div style="position:relative">
+                <button onclick="toggleEmojiPicker()" style="width:100%;padding:12px 16px;background:rgba(255,255,255,0.06);border:1.5px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text);font-size:28px;cursor:pointer;text-align:left">
+                    <span id="selectedRoomEmoji">💬</span>
+                    <span style="font-size:13px;color:var(--text-dim);margin-left:8px">tap to change</span>
+                </button>
+                <div id="emojiPickerWrap" style="display:none;flex-wrap:wrap;gap:8px;padding:12px;background:#0d1425;border:1px solid var(--glass-border);border-radius:14px;margin-top:6px">
+                    ${['💬','🏠','💰','🎯','🚀','🔥','⭐','🎮','📊','🌍','🛒','✈️','🍕','📚','💪','🎵','🌿','🏖️','💼','🎉'].map(e=>`<button onclick="pickEmoji('${e}')" style="font-size:24px;background:none;border:none;cursor:pointer;padding:4px">${e}</button>`).join('')}
+                </div>
+            </div>
+        </div>
+        <div class="room-toggle-row">
+            <div>
+                <div class="room-toggle-label">🔒 Password Protected</div>
+                <div class="room-toggle-sub">Require a password to join</div>
+            </div>
+            <label class="toggle-switch">
+                <input type="checkbox" id="passwordToggle" onchange="togglePasswordField(this)">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        <div class="room-field" style="display:none">
+            <label>Password</label>
+            <input class="room-input" id="roomPasswordInput" type="password" placeholder="Set a room password..." autocomplete="off">
+        </div>
+        <button class="btn-create-room" style="margin-top:8px" onclick="createRoom()">✦ Create Room</button>
+        <button class="btn btn-glass" style="margin-top:10px;width:100%;padding:13px" onclick="closeCreateRoom()">Cancel</button>
+    </div>
+</div>
+
+<!-- JOIN ROOM MODAL -->
+<div class="room-modal-overlay" id="joinRoomModal">
+    <div class="room-modal-box">
+        <div class="room-modal-title">🔗 Join a Room</div>
+        <div class="room-field">
+            <label>Room Code</label>
+            <input class="room-input" id="joinCodeInput" placeholder="Enter 6-character code..." maxlength="6" autocomplete="off" oninput="this.value=this.value.toUpperCase();lookupRoomCode()" style="font-family:monospace;font-size:22px;letter-spacing:6px;text-align:center;text-transform:uppercase">
+        </div>
+        <div id="joinRoomPreview" style="margin-bottom:12px"></div>
+        <div id="joinPasswordWrap" class="room-field" style="display:none">
+            <label>Password</label>
+            <input class="room-input" id="joinRoomPassword" type="password" placeholder="Enter room password..." autocomplete="off">
+        </div>
+        <button class="btn-create-room" style="margin-top:8px" onclick="joinRoom()">🔗 Join Room</button>
+        <button class="btn btn-glass" style="margin-top:10px;width:100%;padding:13px" onclick="closeJoinRoom()">Cancel</button>
+    </div>
+</div>
+
+<!-- ROOM INFO / QR MODAL -->
+<div class="room-modal-overlay" id="roomInfoModal">
+    <div class="room-modal-box" style="align-items:center;text-align:center">
+        <div class="room-modal-title" id="roomInfoName">Room Info</div>
+        <div style="font-size:13px;color:var(--text-dim);margin-bottom:12px">Share this QR or code to invite others</div>
+        <div class="qr-wrap" id="roomQRCode"></div>
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:4px">ROOM CODE</div>
+        <div class="room-code-display" id="roomInfoCode">------</div>
+        <div style="display:flex;gap:10px;width:100%;margin-top:8px">
+            <button class="btn-join-room" style="flex:1;padding:13px" onclick="copyRoomCode()">📋 Copy Code</button>
+            <button class="btn btn-danger" style="flex:1;padding:13px;font-size:13px;border-radius:12px" onclick="leaveRoom()">🚪 Leave</button>
+        </div>
+        <button class="btn btn-glass" style="margin-top:10px;width:100%;padding:13px" onclick="closeRoomInfo()">Close</button>
+    </div>
+</div>
+
+<!-- EMAIL CONFIRM MODAL -->
+<div id="emailConfirmModal" style="display:none;position:fixed;inset:0;z-index:2000;align-items:center;justify-content:center;background:rgba(0,0,0,0.75);backdrop-filter:blur(12px);padding:24px;">
+    <div style="width:100%;max-width:340px;background:#111827;border:1.5px solid var(--gold-border);border-radius:24px;padding:32px 24px;text-align:center;">
+        <div style="font-size:48px;margin-bottom:16px">✉️</div>
+        <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--gold);margin-bottom:10px">Confirm Your Email</div>
+        <div style="color:var(--text-dim);font-size:13px;line-height:1.6;margin-bottom:24px">Enter the email address you used to request the sign-in link.</div>
+        <input type="email" id="confirmEmailInput" class="email-input" placeholder="your@email.com" inputmode="email" autocomplete="email" style="margin-bottom:12px;text-align:center" onkeydown="if(event.key==='Enter') submitConfirmEmail()">
+        <button class="btn-send-link" onclick="submitConfirmEmail()" style="margin-bottom:10px">✅ Confirm &amp; Sign In</button>
+        <button class="btn-back-login" onclick="cancelConfirmEmail()">← Cancel</button>
+    </div>
+</div>
+
+
+<!-- Invite search overlay removed - using UID system -->
+
+<!-- SIGNOUT MODAL -->
+<div class="signout-overlay" id="signoutModal">
+    <div class="signout-box">
+        <div class="signout-emoji">🚪</div>
+        <div class="signout-title">Sign Out?</div>
+        <div class="signout-desc">You'll need to sign in again to access your ledger.</div>
+        <div class="signout-btns">
+            <button class="btn btn-glass" onclick="closeSignout()">Cancel</button>
+            <button class="btn btn-danger" style="padding:13px;font-size:13px;border-radius:12px" onclick="confirmSignout()">Sign Out</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="delete-overlay" id="deleteModal">
+    <div class="delete-box glass-gold">
+        <div class="delete-emoji">🗑️</div>
+        <div class="delete-title">Delete Entry?</div>
+        <div class="delete-desc">This will permanently remove this transaction. This action cannot be undone.</div>
+        <div class="delete-btns">
+            <button class="btn btn-glass" onclick="closeDeleteModal()">Cancel</button>
+            <button class="btn btn-danger" style="padding:13px;font-size:13px;border-radius:12px" onclick="confirmDelete()">Delete</button>
+        </div>
+    </div>
+</div>
+
+<!-- LEAVE SHARED MODAL -->
+<div class="signout-overlay" id="leaveSharedModal">
+    <div class="signout-box">
+        <div class="signout-emoji">🤝</div>
+        <div class="signout-title">Leave Shared Ledger?</div>
+        <div class="signout-desc">Your entries will remain but you'll be disconnected from your partner.</div>
+        <div class="signout-btns">
+            <button class="btn btn-glass" onclick="document.getElementById('leaveSharedModal').classList.remove('active')">Cancel</button>
+            <button class="btn btn-danger" style="padding:13px;font-size:13px;border-radius:12px" onclick="confirmLeaveShared()">Leave</button>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
