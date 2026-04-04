@@ -1,4 +1,4 @@
-const CACHE_NAME = 'elite-ledger-v33';
+const CACHE_NAME = 'elite-ledger-v34';
 
 const FILES = [
     '/',
